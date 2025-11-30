@@ -7,13 +7,15 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": [
-			"**/src/**/*",
-			"**/.vscode/**/*",
-			"**/index.html",
-			"**/vite.config.js",
-			"!**/src/routeTree.gen.ts",
-			"!**/src/styles.css"
+		"include": [
+			"src/**/*",
+			".vscode/**/*",
+			"index.html",
+			"vite.config.js"
+		],
+		"ignore": [
+			"src/routeTree.gen.ts",
+			"src/styles.css"
 		]
 	},
 	"formatter": {
