@@ -186,7 +186,7 @@ function App() {
   const totalDone = tasks.filter((task) => task.done).length
 
   return (
-    <div className='flex h-screen flex-col bg-muted/30 py-10 space-y-2'>
+    <div className='flex h-screen flex-col bg-muted/30 py-8 space-y-2'>
       <div className='mx-auto w-full max-w-6xl space-y-4 px-4'>
         <header className='space-y-2'>
           <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
