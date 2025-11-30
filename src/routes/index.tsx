@@ -1,114 +1,193 @@
-﻿import { useState, type KeyboardEvent } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Textarea } from '@/components/ui/textarea'
+﻿import { useMemo, useState, type KeyboardEvent } from "react"
+import { createFileRoute } from "@tanstack/react-router"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute("/")({ component: App })
 
-type ChecklistItem = {
-  id: number
-  text: string
-  done: boolean
-  note?: string
+type Member = {
+  id: string
+  name: string
 }
 
+type Task = {
+  id: number
+  memberId: string
+  title: string
+  note?: string
+  done: boolean
+}
+
+const members: Member[] = [
+  { id: "me", name: "自分" },
+  { id: "alice", name: "アリス" },
+  { id: "bob", name: "ボブ" },
+]
+
+const currentUserId = "me"
+
 function App() {
-  const [items, setItems] = useState<ChecklistItem[]>([
-    { id: 1, text: '今日の最優先タスク', done: false, note: 'ゴールと期限を先に決める' },
-    { id: 2, text: 'ミーティングで聞きたいことを1つ', done: false },
-    { id: 3, text: 'Enterで次の項目を追加できます', done: false, note: 'Shift+Enterで備考を開いて補足を書く' },
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: 1,
+      memberId: "me",
+      title: "今日の最優先タスク",
+      note: "ゴールと期限を先に決める",
+      done: false,
+    },
+    {
+      id: 2,
+      memberId: "me",
+      title: "ミーティングで聞きたいことを1つ",
+      done: false,
+    },
+    {
+      id: 3,
+      memberId: "me",
+      title: "Enterで次の項目を追加できます",
+      note: "Shift+Enterで備考を開いて補足を書く",
+      done: false,
+    },
+    {
+      id: 4,
+      memberId: "alice",
+      title: "デザインレビューの準備",
+      note: "最新のモックを共有",
+      done: false,
+    },
+    {
+      id: 5,
+      memberId: "alice",
+      title: "バグ再現動画を撮る",
+      done: true,
+    },
+    {
+      id: 6,
+      memberId: "bob",
+      title: "APIレスポンスの確認",
+      done: false,
+    },
   ])
+
+  const nextId = useMemo(() => Math.max(0, ...tasks.map((task) => task.id)) + 1, [tasks])
+
+  const isEditable = (memberId: string) => memberId === currentUserId
 
   /**
    * チェック状態の切り替え
-   * @param id 対象ID
+   * @param id タスクID
    * @param next 次の完了状態
    */
-  const toggleItem = (id: number, next: boolean) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, done: next } : item)))
+  const toggleTask = (id: number, next: boolean) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id && isEditable(task.memberId) ? { ...task, done: next } : task
+      )
+    )
   }
 
   /**
    * タスク本文の更新
-   * @param id 対象ID
-   * @param text 本文
+   * @param id タスクID
+   * @param title 本文
    */
-  const updateText = (id: number, text: string) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, text } : item)))
+  const updateTitle = (id: number, title: string) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id && isEditable(task.memberId) ? { ...task, title } : task
+      )
+    )
   }
 
   /**
    * 備考の更新
-   * @param id 対象ID
+   * @param id タスクID
    * @param note 備考
    */
   const updateNote = (id: number, note: string) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, note } : item)))
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id && isEditable(task.memberId) ? { ...task, note } : task
+      )
+    )
   }
 
   /**
    * 備考欄を新規で確保
-   * @param id 対象ID
+   * @param id タスクID
    */
   const ensureNote = (id: number) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, note: item.note ?? '' } : item)))
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id && isEditable(task.memberId)
+          ? { ...task, note: task.note ?? "" }
+          : task
+      )
+    )
   }
 
   /**
    * 備考欄の削除
-   * @param id 対象ID
+   * @param id タスクID
    */
   const removeNote = (id: number) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, note: undefined } : item)))
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id && isEditable(task.memberId)
+          ? { ...task, note: undefined }
+          : task
+      )
+    )
   }
 
   /**
-   * 新しい行を挿入
-   * @param index 挿入先インデックス
+   * 新しい行を挿入（自分の列のみ）
+   * @param memberId メンバーID
    */
-  const insertItem = (index: number) => {
-    setItems((prev) => {
-      const freshId = Math.max(0, ...prev.map((item) => item.id)) + 1
-      const nextItems = [...prev]
-      nextItems.splice(index, 0, { id: freshId, text: '', done: false })
-      return nextItems
-    })
+  const insertTask = (memberId: string) => {
+    if (!isEditable(memberId)) return
+    setTasks((prev) => [
+      ...prev,
+      { id: nextId, memberId, title: "", done: false },
+    ])
   }
 
   /**
-   * Enter: 次の行を追加、Shift+Enter: 備考欄を追加
+   * Enter: 次の行を追加、Shift+Enter: 備考欄を追加（自分の列のみ）
    * @param event キーイベント
-   * @param id 対象ID
-   * @param index 行インデックス
+   * @param task 対象タスク
    */
   const handleKeyDown = (
     event: KeyboardEvent<HTMLTextAreaElement>,
-    id: number,
-    index: number
+    task: Task
   ) => {
-    if (event.key === 'Enter' && event.shiftKey) {
+    if (!isEditable(task.memberId)) return
+
+    if (event.key === "Enter" && event.shiftKey) {
       event.preventDefault()
-      ensureNote(id)
+      ensureNote(task.id)
       return
     }
 
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
-      insertItem(index + 1)
+      insertTask(task.memberId)
     }
   }
 
-  const removeItem = (id: number) => {
-    setItems((prev) => (prev.length > 1 ? prev.filter((item) => item.id !== id) : prev))
+  const removeTask = (id: number) => {
+    setTasks((prev) =>
+      prev.length > 1 ? prev.filter((task) => task.id !== id || !isEditable(task.memberId)) : prev
+    )
   }
 
-  const completedCount = items.filter((item) => item.done).length
+  const totalDone = tasks.filter((task) => task.done).length
 
   return (
-    <div className='min-h-screen bg-muted/30 py-10'>
-      <div className='mx-auto max-w-4xl space-y-4 px-4'>
+    <div className='flex h-screen flex-col bg-muted/30 py-10 space-y-2'>
+      <div className='mx-auto w-full max-w-6xl space-y-4 px-4'>
         <header className='space-y-2'>
           <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
             <div className='space-y-2'>
@@ -116,94 +195,125 @@ function App() {
                 きょうのフォーカス
               </p>
               <h1 className='text-2xl font-bold leading-tight sm:text-3xl'>
-                タスクと備考
+                メンバーごとのタスク一覧
               </h1>
             </div>
             <Badge variant='secondary' className='justify-center'>
-              {completedCount} / {items.length} 完了
+              {totalDone} / {tasks.length} 完了
             </Badge>
           </div>
-          <p className='text-muted-foreground text-sm'>Enterで次のタスクを追加。Shift+Enterでこの行に備考欄を出すか、「備考を追加」ボタンを押してください。</p>
+          <p className='text-muted-foreground text-sm'>
+            自分の列だけ編集できます。他のメンバーのタスクは閲覧専用。Enterで次の行を追加、Shift+Enterで備考欄を開けます。
+          </p>
         </header>
+      </div>
 
-        <div className='space-y-4'>
-          {items.map((item, index) => (
-            <div
-              key={item.id}
-              className='flex flex-col gap-2 px-4 py-2'
-            >
-              <div className='flex gap-4'>
-                <div className='pt-2'>
-                  <Checkbox
-                    checked={item.done}
-                    onCheckedChange={(checked) => toggleItem(item.id, Boolean(checked))}
-                    aria-label='完了'
-                  />
-                </div>
-                <div className='flex-1'>
-                  <Textarea
-                    value={item.text}
-                    onChange={(event) => updateText(item.id, event.target.value)}
-                    onKeyDown={(event) => handleKeyDown(event, item.id, index)}
-                    rows={item.text.includes('\n') ? Math.min(5, item.text.split('\n').length + 1) : 2}
-                    placeholder='タスクを書いてEnterで次を追加'
-                    className='min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none focus-visible:border-transparent focus-visible:ring-0'
-                  />
-                </div>
-                <Button
-                  variant='ghost'
-                  size='icon-sm'
-                  aria-label='この行を削除'
-                  onClick={() => removeItem(item.id)}
-                  className='text-muted-foreground'
-                >
-                  ×
-                </Button>
-              </div>
+      <div className='flex-1 flex overflow-x-auto px-4 pb-4'>
+        <div className='flex w-max gap-4'>
+          {members.map((member) => {
+            const memberTasks = tasks.filter((task) => task.memberId === member.id)
+            const doneCount = memberTasks.filter((task) => task.done).length
+            const editable = isEditable(member.id)
 
-              {item.note !== undefined ? (
-                <div className='group/note ml-8 flex items-start gap-2 rounded-md bg-muted/30 px-4 py-2 text-sm'>
-                  <Textarea
-                    value={item.note}
-                    onChange={(event) => updateNote(item.id, event.target.value)}
-                    placeholder='補足やリンクなどを書く'
-                    rows={item.note.includes('\n') ? Math.min(5, item.note.split('\n').length + 1) : 2}
-                    className='min-h-20 flex-1 resize-none border-none bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0'
-                  />
-                  <Button
-                    variant='ghost'
-                    size='icon-sm'
-                    aria-label='備考を削除'
-                    onClick={() => removeNote(item.id)}
-                    className='text-muted-foreground opacity-0 transition group-hover/note:opacity-100 group-focus-within/note:opacity-100'
-                  >
-                    ×
-                  </Button>
-                </div>
-              ) : (
-                <div className='flex items-center gap-2 pl-10'>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-8 px-2 text-xs'
-                    onClick={() => ensureNote(item.id)}
-                  >
-                    備考を追加
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+            return (
+              <section key={member.id} className='w-[340px] shrink-0 p-4'>
+                <header className='mb-2 flex items-center justify-between'>
+                  <div className='space-y-1'>
+                    <p className='text-lg font-semibold'>{member.name}</p>
+                  </div>
+                  <Badge variant='secondary' className='shrink-0'>
+                    {doneCount} / {memberTasks.length} 完了
+                  </Badge>
+                </header>
 
-        <div className='flex justify-center'>
-          <Button
-            variant='outline'
-            className='w-full sm:w-auto'
-            onClick={() => insertItem(items.length)}
-          >
-            + 行を追加
-          </Button>
+                <div className='space-y-4 pb-4'>
+                  {memberTasks.map((task) => (
+                    <div key={task.id} className='flex flex-col gap-2 px-2'>
+                      <div className='flex gap-4'>
+                        <div className='pt-2'>
+                          <Checkbox
+                            checked={task.done}
+                            onCheckedChange={(checked) => editable && toggleTask(task.id, Boolean(checked))}
+                            aria-label='完了'
+                            disabled={!editable}
+                          />
+                        </div>
+                        <div className='flex-1'>
+                          <Textarea
+                            value={task.title}
+                            onChange={(event) => editable && updateTitle(task.id, event.target.value)}
+                            onKeyDown={(event) => handleKeyDown(event, task)}
+                            readOnly={!editable}
+                            rows={task.title.includes("\n") ? Math.min(5, task.title.split("\n").length + 1) : 2}
+                            placeholder='タスクを書いてEnterで次を追加'
+                            className='min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none focus-visible:border-transparent focus-visible:ring-0'
+                          />
+                        </div>
+                        {editable && (
+                          <Button
+                            variant='ghost'
+                            size='icon-sm'
+                            aria-label='この行を削除'
+                            onClick={() => removeTask(task.id)}
+                            className='text-muted-foreground'
+                          >
+                            ×
+                          </Button>
+                        )}
+                      </div>
+
+                      {task.note !== undefined ? (
+                        <div className='group/note ml-8 flex items-start gap-2 rounded-md bg-muted/30 px-4 py-2 text-sm'>
+                          <Textarea
+                            value={task.note}
+                            onChange={(event) => editable && updateNote(task.id, event.target.value)}
+                            readOnly={!editable}
+                            placeholder='補足やリンクなどを書く'
+                            rows={task.note.includes("\n") ? Math.min(5, task.note.split("\n").length + 1) : 2}
+                            className='min-h-20 flex-1 resize-none border-none bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0'
+                          />
+                          {editable && (
+                            <Button
+                              variant='ghost'
+                              size='icon-sm'
+                              aria-label='備考を削除'
+                              onClick={() => removeNote(task.id)}
+                              className='text-muted-foreground opacity-0 transition group-hover/note:opacity-100 group-focus-within/note:opacity-100'
+                            >
+                              ×
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        editable && (
+                          <div className='flex items-center gap-2 pl-10'>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='h-8 px-2 text-xs'
+                              onClick={() => ensureNote(task.id)}
+                            >
+                              備考を追加
+                            </Button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ))}
+
+                  {editable && (
+                    <Button
+                      variant='outline'
+                      className='w-full justify-center'
+                      onClick={() => insertTask(member.id)}
+                    >
+                      + 行を追加
+                    </Button>
+                  )}
+                </div>
+              </section>
+            )
+          })}
         </div>
       </div>
     </div>
