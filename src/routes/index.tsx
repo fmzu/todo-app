@@ -21,26 +21,53 @@ function App() {
     { id: 3, text: 'Enterで次の項目を追加できます', done: false, note: 'Shift+Enterで備考を開いて補足を書く' },
   ])
 
+  /**
+   * チェック状態の切り替え
+   * @param id 対象ID
+   * @param next 次の完了状態
+   */
   const toggleItem = (id: number, next: boolean) => {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, done: next } : item)))
   }
 
+  /**
+   * タスク本文の更新
+   * @param id 対象ID
+   * @param text 本文
+   */
   const updateText = (id: number, text: string) => {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, text } : item)))
   }
 
+  /**
+   * 備考の更新
+   * @param id 対象ID
+   * @param note 備考
+   */
   const updateNote = (id: number, note: string) => {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, note } : item)))
   }
 
+  /**
+   * 備考欄を新規で確保
+   * @param id 対象ID
+   */
   const ensureNote = (id: number) => {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, note: item.note ?? '' } : item)))
   }
 
+  /**
+   * 備考欄の削除
+   * @param id 対象ID
+   */
   const removeNote = (id: number) => {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, note: undefined } : item)))
   }
 
+  /**
+   * 新しい行を挿入
+   * @param index 挿入先インデックス
+   */
   const insertItem = (index: number) => {
     setItems((prev) => {
       const freshId = Math.max(0, ...prev.map((item) => item.id)) + 1
@@ -50,6 +77,12 @@ function App() {
     })
   }
 
+  /**
+   * Enter: 次の行を追加、Shift+Enter: 備考欄を追加
+   * @param event キーイベント
+   * @param id 対象ID
+   * @param index 行インデックス
+   */
   const handleKeyDown = (
     event: KeyboardEvent<HTMLTextAreaElement>,
     id: number,
