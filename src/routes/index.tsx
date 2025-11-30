@@ -1,118 +1,178 @@
+﻿import { useState, type KeyboardEvent } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import {
-  Zap,
-  Server,
-  Route as RouteIcon,
-  Shield,
-  Waves,
-  Sparkles,
-} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 
 export const Route = createFileRoute('/')({ component: App })
 
+type ChecklistItem = {
+  id: number
+  text: string
+  done: boolean
+  note?: string
+}
+
 function App() {
-  const features = [
-    {
-      icon: <Zap className="w-12 h-12 text-cyan-400" />,
-      title: 'Powerful Server Functions',
-      description:
-        'Write server-side code that seamlessly integrates with your client components. Type-safe, secure, and simple.',
-    },
-    {
-      icon: <Server className="w-12 h-12 text-cyan-400" />,
-      title: 'Flexible Server Side Rendering',
-      description:
-        'Full-document SSR, streaming, and progressive enhancement out of the box. Control exactly what renders where.',
-    },
-    {
-      icon: <RouteIcon className="w-12 h-12 text-cyan-400" />,
-      title: 'API Routes',
-      description:
-        'Build type-safe API endpoints alongside your application. No separate backend needed.',
-    },
-    {
-      icon: <Shield className="w-12 h-12 text-cyan-400" />,
-      title: 'Strongly Typed Everything',
-      description:
-        'End-to-end type safety from server to client. Catch errors before they reach production.',
-    },
-    {
-      icon: <Waves className="w-12 h-12 text-cyan-400" />,
-      title: 'Full Streaming Support',
-      description:
-        'Stream data from server to client progressively. Perfect for AI applications and real-time updates.',
-    },
-    {
-      icon: <Sparkles className="w-12 h-12 text-cyan-400" />,
-      title: 'Next Generation Ready',
-      description:
-        'Built from the ground up for modern web applications. Deploy anywhere JavaScript runs.',
-    },
-  ]
+  const [items, setItems] = useState<ChecklistItem[]>([
+    { id: 1, text: '今日の最優先タスク', done: false, note: 'ゴールと期限を先に決める' },
+    { id: 2, text: 'ミーティングで聞きたいことを1つ', done: false },
+    { id: 3, text: 'Enterで次の項目を追加できます', done: false, note: 'Shift+Enterで備考を開いて補足を書く' },
+  ])
+
+  const toggleItem = (id: number, next: boolean) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, done: next } : item)))
+  }
+
+  const updateText = (id: number, text: string) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, text } : item)))
+  }
+
+  const updateNote = (id: number, note: string) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, note } : item)))
+  }
+
+  const ensureNote = (id: number) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, note: item.note ?? '' } : item)))
+  }
+
+  const removeNote = (id: number) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, note: undefined } : item)))
+  }
+
+  const insertItem = (index: number) => {
+    setItems((prev) => {
+      const freshId = Math.max(0, ...prev.map((item) => item.id)) + 1
+      const nextItems = [...prev]
+      nextItems.splice(index, 0, { id: freshId, text: '', done: false })
+      return nextItems
+    })
+  }
+
+  const handleKeyDown = (
+    event: KeyboardEvent<HTMLTextAreaElement>,
+    id: number,
+    index: number
+  ) => {
+    if (event.key === 'Enter' && event.shiftKey) {
+      event.preventDefault()
+      ensureNote(id)
+      return
+    }
+
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      insertItem(index + 1)
+    }
+  }
+
+  const removeItem = (id: number) => {
+    setItems((prev) => (prev.length > 1 ? prev.filter((item) => item.id !== id) : prev))
+  }
+
+  const completedCount = items.filter((item) => item.done).length
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <section className="relative py-20 px-6 text-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10"></div>
-        <div className="relative max-w-5xl mx-auto">
-          <div className="flex items-center justify-center gap-6 mb-6">
-            <img
-              src="/tanstack-circle-logo.png"
-              alt="TanStack Logo"
-              className="w-24 h-24 md:w-32 md:h-32"
-            />
-            <h1 className="text-6xl md:text-7xl font-black text-white [letter-spacing:-0.08em]">
-              <span className="text-gray-300">TANSTACK</span>{' '}
-              <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                START
-              </span>
-            </h1>
-          </div>
-          <p className="text-2xl md:text-3xl text-gray-300 mb-4 font-light">
-            The framework for next generation AI applications
-          </p>
-          <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-8">
-            Full-stack framework powered by TanStack Router for React and Solid.
-            Build modern applications with server functions, streaming, and type
-            safety.
-          </p>
-          <div className="flex flex-col items-center gap-4">
-            <a
-              href="https://tanstack.com/start"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-8 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-cyan-500/50"
-            >
-              Documentation
-            </a>
-            <p className="text-gray-400 text-sm mt-2">
-              Begin your TanStack Start journey by editing{' '}
-              <code className="px-2 py-1 bg-slate-700 rounded text-cyan-400">
-                /src/routes/index.tsx
-              </code>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 px-6 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10"
-            >
-              <div className="mb-4">{feature.icon}</div>
-              <h3 className="text-xl font-semibold text-white mb-3">
-                {feature.title}
-              </h3>
-              <p className="text-gray-400 leading-relaxed">
-                {feature.description}
+    <div className='min-h-screen bg-muted/30 py-10'>
+      <div className='mx-auto max-w-4xl space-y-4 px-4'>
+        <header className='space-y-2'>
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='space-y-2'>
+              <p className='text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground'>
+                きょうのフォーカス
               </p>
+              <h1 className='text-2xl font-bold leading-tight sm:text-3xl'>
+                タスクと備考
+              </h1>
+            </div>
+            <Badge variant='secondary' className='justify-center'>
+              {completedCount} / {items.length} 完了
+            </Badge>
+          </div>
+          <p className='text-muted-foreground text-sm'>Enterで次のタスクを追加。Shift+Enterでこの行に備考欄を出すか、「備考を追加」ボタンを押してください。</p>
+        </header>
+
+        <div className='space-y-4'>
+          {items.map((item, index) => (
+            <div
+              key={item.id}
+              className='flex flex-col gap-2 px-4 py-2'
+            >
+              <div className='flex gap-4'>
+                <div className='pt-2'>
+                  <Checkbox
+                    checked={item.done}
+                    onCheckedChange={(checked) => toggleItem(item.id, Boolean(checked))}
+                    aria-label='完了'
+                  />
+                </div>
+                <div className='flex-1'>
+                  <Textarea
+                    value={item.text}
+                    onChange={(event) => updateText(item.id, event.target.value)}
+                    onKeyDown={(event) => handleKeyDown(event, item.id, index)}
+                    rows={item.text.includes('\n') ? Math.min(5, item.text.split('\n').length + 1) : 2}
+                    placeholder='タスクを書いてEnterで次を追加'
+                    className='min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none focus-visible:border-transparent focus-visible:ring-0'
+                  />
+                </div>
+                <Button
+                  variant='ghost'
+                  size='icon-sm'
+                  aria-label='この行を削除'
+                  onClick={() => removeItem(item.id)}
+                  className='text-muted-foreground'
+                >
+                  ×
+                </Button>
+              </div>
+
+              {item.note !== undefined ? (
+                <div className='group/note ml-8 flex items-start gap-2 rounded-md bg-muted/30 px-4 py-2 text-sm'>
+                  <Textarea
+                    value={item.note}
+                    onChange={(event) => updateNote(item.id, event.target.value)}
+                    placeholder='補足やリンクなどを書く'
+                    rows={item.note.includes('\n') ? Math.min(5, item.note.split('\n').length + 1) : 2}
+                    className='min-h-20 flex-1 resize-none border-none bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0'
+                  />
+                  <Button
+                    variant='ghost'
+                    size='icon-sm'
+                    aria-label='備考を削除'
+                    onClick={() => removeNote(item.id)}
+                    className='text-muted-foreground opacity-0 transition group-hover/note:opacity-100 group-focus-within/note:opacity-100'
+                  >
+                    ×
+                  </Button>
+                </div>
+              ) : (
+                <div className='flex items-center gap-2 pl-10'>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-8 px-2 text-xs'
+                    onClick={() => ensureNote(item.id)}
+                  >
+                    備考を追加
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
-      </section>
+
+        <div className='flex justify-center'>
+          <Button
+            variant='outline'
+            className='w-full sm:w-auto'
+            onClick={() => insertItem(items.length)}
+          >
+            + 行を追加
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
