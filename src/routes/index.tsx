@@ -216,8 +216,8 @@ function App() {
             const editable = isEditable(member.id)
 
             return (
-              <section key={member.id} className='w-[340px] shrink-0 p-4'>
-                <header className='mb-2 flex items-center justify-between'>
+              <section key={member.id} className='relative w-[340px] shrink-0 p-4'>
+                <header className='sticky top-0 z-10 mb-3 flex items-center justify-between bg-transparent px-1 py-2'>
                   <div className='space-y-1'>
                     <p className='text-lg font-semibold'>{member.name}</p>
                   </div>
