@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import type { Task, Member } from "./index"
 import { TaskItem } from "./TaskItem"
 
-type MemberColumnProps = {
+type Props = {
   member: Member
   tasks: Task[]
   doneCount: number
@@ -22,7 +22,7 @@ type MemberColumnProps = {
 /**
  * メンバー1列分のタスクをまとめて表示するコンポーネント
  */
-export function MemberColumn(props: MemberColumnProps) {
+export function MemberColumn(props: Props) {
   const member = props.member
   const tasks = props.tasks
   const doneCount = props.doneCount

@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import type { Task } from "./index"
 
-type TaskItemProps = {
+type Props = {
   task: Task
   editable: boolean
   onToggle: (id: number, next: boolean) => void
@@ -18,7 +18,7 @@ type TaskItemProps = {
 /**
  * タスク1件の表示と編集を担当するコンポーネント
  */
-export function TaskItem(props: TaskItemProps) {
+export function TaskItem(props: Props) {
   const task = props.task
   const editable = props.editable
   const onToggle = props.onToggle
