@@ -28,7 +28,9 @@
 - ブランチ作成やコミットはユーザー指示があるときだけ
 - 型定義は`src/types`、ユーティリティ/API関数は`src/lib`、hooksは`src/hooks`、データ定義は`src/data`に配置する
 - 関数のファイル分離は役割単位で過不足ない粒度にする
- - 自作コンポーネントは`src/routes/components`に配置する
+- 自作コンポーネントは`src/routes/components`に配置する
+- GET系のサーバー関数名は`fetch`で統一する
+- サーバー関数の命名は`fetch`/`create`/`update`/`delete`に統一し、`save`は使わない
 
 ## 調査・検索
 - まず`rg`で検索（無い場合のみ`grep`）

@@ -1,26 +1,27 @@
-﻿import { useMemo, useState, type KeyboardEvent } from "react"
+﻿import { useState, type KeyboardEvent } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { members, currentUserId, initialTasks } from "@/data/todo"
+import { currentUserId } from "@/data/todo"
 import {
   canEditMember,
   ensureTaskNote,
-  getNextTaskId,
-  insertTask as insertTaskEntry,
-  removeTask as removeTaskEntry,
   removeTaskNote,
   toggleTaskDone,
   updateTaskNote,
   updateTaskTitle,
 } from "@/lib/tasks"
+import { createTask, deleteTask, fetchTodoState, updateTask } from "@/lib/todo-server"
 import type { Task } from "@/types/todo"
 import { MemberColumn } from "@/routes/components/MemberColumn"
 
-export const Route = createFileRoute("/")({ component: App })
+export const Route = createFileRoute("/")({
+  component: App,
+  loader: async () => await fetchTodoState(),
+})
 
 function App() {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks)
-
-  const nextId = useMemo(() => getNextTaskId(tasks), [tasks])
+  const initialData = Route.useLoaderData()
+  const [tasks, setTasks] = useState<Task[]>(initialData.tasks)
+  const members = initialData.members
 
   const isEditable = (memberId: string) => canEditMember(memberId, currentUserId)
 
@@ -31,6 +32,7 @@ function App() {
    */
   const toggleTask = (id: number, next: boolean) => {
     setTasks((prev) => toggleTaskDone(prev, id, next, currentUserId))
+    void updateTask({ data: { id, done: next } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -40,6 +42,7 @@ function App() {
    */
   const updateTitle = (id: number, title: string) => {
     setTasks((prev) => updateTaskTitle(prev, id, title, currentUserId))
+    void updateTask({ data: { id, title } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -49,6 +52,7 @@ function App() {
    */
   const updateNote = (id: number, note: string) => {
     setTasks((prev) => updateTaskNote(prev, id, note, currentUserId))
+    void updateTask({ data: { id, note } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -57,6 +61,7 @@ function App() {
    */
   const ensureNote = (id: number) => {
     setTasks((prev) => ensureTaskNote(prev, id, currentUserId))
+    void updateTask({ data: { id, note: "" } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -65,6 +70,7 @@ function App() {
    */
   const removeNote = (id: number) => {
     setTasks((prev) => removeTaskNote(prev, id, currentUserId))
+    void updateTask({ data: { id, note: null } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -72,7 +78,8 @@ function App() {
    * @param memberId メンバーID
    */
   const insertTask = (memberId: string) => {
-    setTasks((prev) => insertTaskEntry(prev, memberId, nextId, currentUserId))
+    if (!isEditable(memberId)) return
+    void createTask({ data: { memberId } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -91,7 +98,7 @@ function App() {
 
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
-      insertTask(task.memberId)
+      void insertTask(task.memberId)
     }
   }
 
@@ -100,7 +107,8 @@ function App() {
    * @param id タスクID
    */
   const removeTask = (id: number) => {
-    setTasks((prev) => removeTaskEntry(prev, id, currentUserId))
+    if (tasks.length <= 1) return
+    void deleteTask({ data: { id } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   return (
@@ -135,4 +143,3 @@ function App() {
     </div>
   )
 }
-
