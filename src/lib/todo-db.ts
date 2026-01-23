@@ -5,6 +5,7 @@ type MemberRow = {
   id: string
   name: string
   sort_order: number
+  organization_id: string | null
 }
 
 type TaskRow = {
@@ -19,8 +20,18 @@ type TaskRow = {
  * メンバー一覧を並び順で取得する。
  * @param db D1データベース
  */
-export async function listMembers(db: D1Database): Promise<Member[]> {
-  const result = await db.prepare("SELECT id, name, sort_order FROM members ORDER BY sort_order ASC, id ASC").all<MemberRow>()
+/**
+ * 組織配下のメンバー一覧を並び順で取得する。
+ * @param db D1データベース
+ * @param organizationId 組織ID
+ */
+export async function listMembersByOrganization(db: D1Database, organizationId: string): Promise<Member[]> {
+  const result = await db
+    .prepare(
+      "SELECT id, name, sort_order, organization_id FROM members WHERE organization_id = ?1 ORDER BY sort_order ASC, id ASC",
+    )
+    .bind(organizationId)
+    .all<MemberRow>()
   return result.results.map((row) => ({
     id: row.id,
     name: row.name,
@@ -31,8 +42,18 @@ export async function listMembers(db: D1Database): Promise<Member[]> {
  * タスク一覧をID順で取得する。
  * @param db D1データベース
  */
-export async function listTasks(db: D1Database): Promise<Task[]> {
-  const result = await db.prepare("SELECT id, member_id, title, note, done FROM tasks ORDER BY id ASC").all<TaskRow>()
+/**
+ * 組織配下のタスク一覧をID順で取得する。
+ * @param db D1データベース
+ * @param organizationId 組織ID
+ */
+export async function listTasksByOrganization(db: D1Database, organizationId: string): Promise<Task[]> {
+  const result = await db
+    .prepare(
+      "SELECT tasks.id, tasks.member_id, tasks.title, tasks.note, tasks.done FROM tasks INNER JOIN members ON tasks.member_id = members.id WHERE members.organization_id = ?1 ORDER BY tasks.id ASC",
+    )
+    .bind(organizationId)
+    .all<TaskRow>()
   return result.results.map((row) => ({
     id: row.id,
     memberId: row.member_id,
@@ -40,6 +61,69 @@ export async function listTasks(db: D1Database): Promise<Task[]> {
     note: row.note ?? undefined,
     done: row.done === 1,
   }))
+}
+
+/**
+ * 組織配下のメンバーを新規作成する。
+ * @param db D1データベース
+ * @param id メンバーID
+ * @param name 表示名
+ * @param organizationId 組織ID
+ */
+export async function createMember(
+  db: D1Database,
+  id: string,
+  name: string,
+  organizationId: string,
+): Promise<void> {
+  const result = await db
+    .prepare("SELECT MAX(sort_order) as maxSort FROM members WHERE organization_id = ?1")
+    .bind(organizationId)
+    .all<{ maxSort: number | null }>()
+  const maxSort = result.results[0]?.maxSort ?? 0
+  const nextSort = maxSort + 1
+  await db
+    .prepare("INSERT INTO members (id, name, sort_order, organization_id) VALUES (?1, ?2, ?3, ?4)")
+    .bind(id, name, nextSort, organizationId)
+    .run()
+}
+
+/**
+ * メンバーが組織に属しているか確認する。
+ * @param db D1データベース
+ * @param memberId メンバーID
+ * @param organizationId 組織ID
+ */
+export async function isMemberInOrganization(
+  db: D1Database,
+  memberId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const result = await db
+    .prepare("SELECT id FROM members WHERE id = ?1 AND organization_id = ?2")
+    .bind(memberId, organizationId)
+    .all<{ id: string }>()
+  return Boolean(result.results[0])
+}
+
+/**
+ * タスクが組織に属しているか確認する。
+ * @param db D1データベース
+ * @param taskId タスクID
+ * @param organizationId 組織ID
+ */
+export async function isTaskInOrganization(
+  db: D1Database,
+  taskId: number,
+  organizationId: string,
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      "SELECT tasks.id FROM tasks INNER JOIN members ON tasks.member_id = members.id WHERE tasks.id = ?1 AND members.organization_id = ?2",
+    )
+    .bind(taskId, organizationId)
+    .all<{ id: number }>()
+  return Boolean(result.results[0])
 }
 
 /**

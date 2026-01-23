@@ -1,6 +1,5 @@
-﻿import { useState, type KeyboardEvent } from "react"
+﻿import { useEffect, useState, type KeyboardEvent } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { currentUserId } from "@/data/todo"
 import { formatJapanDate } from "@/lib/date"
 import {
   canEditMember,
@@ -11,7 +10,9 @@ import {
   updateTaskTitle,
 } from "@/lib/tasks"
 import { createTask, deleteTask, fetchTodoState, updateTask } from "@/lib/todo-server"
-import type { Task } from "@/types/todo"
+import { createAccount, fetchAccountByEmail } from "@/lib/auth-server"
+import type { Account } from "@/types/account"
+import type { Member, Task } from "@/types/todo"
 import { MemberColumn } from "@/routes/components/MemberColumn"
 
 const TITLE_LIMIT = 80
@@ -22,18 +23,26 @@ type TaskErrors = {
   note?: string
 }
 
+type AuthMode = "signup" | "login"
+
 export const Route = createFileRoute("/")({
   component: App,
-  loader: async () => await fetchTodoState(),
 })
 
 function App() {
-  const initialData = Route.useLoaderData()
-  const [tasks, setTasks] = useState<Task[]>(initialData.tasks)
+  const [account, setAccount] = useState<Account | null>(null)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [members, setMembers] = useState<Member[]>([])
   const [taskErrors, setTaskErrors] = useState<Record<number, TaskErrors>>({})
-  const members = initialData.members
+  const [authMode, setAuthMode] = useState<AuthMode>("signup")
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [authEmail, setAuthEmail] = useState("")
+  const [authName, setAuthName] = useState("")
+  const [authJoinCode, setAuthJoinCode] = useState("")
   const todayLabel = formatJapanDate(new Date())
+  const organizationId = account?.organizationId ?? null
 
+  const currentUserId = account?.id ?? ""
   const isEditable = (memberId: string) => canEditMember(memberId, currentUserId)
 
   /**
@@ -42,8 +51,9 @@ function App() {
    * @param next 次の完了状態
    */
   const toggleTask = (id: number, next: boolean) => {
+    if (!organizationId) return
     setTasks((prev) => toggleTaskDone(prev, id, next, currentUserId))
-    void updateTask({ data: { id, done: next } }).then((updatedTasks) => setTasks(updatedTasks))
+    void updateTask({ data: { id, done: next, organizationId } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   const getTitleError = (title: string) =>
@@ -61,12 +71,13 @@ function App() {
   }
 
   const commitTask = (task: Task, noteOverride?: string | null) => {
+    if (!organizationId) return Promise.resolve(null)
     const note = noteOverride ?? task.note ?? null
     const nextErrors = updateTaskErrors(task.id, task.title, note)
     if (nextErrors.title || nextErrors.note) {
       return Promise.resolve(null)
     }
-    return updateTask({ data: { id: task.id, title: task.title, note } }).then((updatedTasks) => {
+    return updateTask({ data: { id: task.id, title: task.title, note, organizationId } }).then((updatedTasks) => {
       setTasks(updatedTasks)
       setTaskErrors((prev) => ({ ...prev, [task.id]: {} }))
       return updatedTasks
@@ -121,7 +132,8 @@ function App() {
    */
   const insertTask = (memberId: string) => {
     if (!isEditable(memberId)) return
-    void createTask({ data: { memberId } }).then((updatedTasks) => setTasks(updatedTasks))
+    if (!organizationId) return
+    void createTask({ data: { memberId, organizationId } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -151,42 +163,215 @@ function App() {
    */
   const removeTask = (id: number) => {
     if (tasks.length <= 1) return
-    void deleteTask({ data: { id } }).then((updatedTasks) => setTasks(updatedTasks))
+    if (!organizationId) return
+    void deleteTask({ data: { id, organizationId } }).then((updatedTasks) => setTasks(updatedTasks))
   }
+
+  const syncTodoState = (nextOrganizationId: string) => {
+    void fetchTodoState({ data: { organizationId: nextOrganizationId } }).then((payload) => {
+      setMembers(payload.members)
+      setTasks(payload.tasks)
+    })
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("todo.account")
+    setAccount(null)
+    setMembers([])
+    setTasks([])
+    setAuthError(null)
+  }
+
+  const getAuthErrorMessage = (error: unknown, fallback: string) => {
+    if (error instanceof Error) {
+      try {
+        const parsed = JSON.parse(error.message) as Array<{ message?: string }>
+        const message = parsed?.[0]?.message
+        if (typeof message === "string" && message.length > 0) {
+          return message
+        }
+      } catch {
+        // JSON parse failed
+      }
+      if (error.message) {
+        return error.message
+      }
+    }
+    return fallback
+  }
+
+  const handleAuth = async () => {
+    setAuthError(null)
+    if (!authEmail) {
+      setAuthError("メールアドレスを入力してください")
+      return
+    }
+
+    if (authMode === "login") {
+      try {
+        const result = await fetchAccountByEmail({ data: { email: authEmail } })
+        if (!result) {
+          setAuthError("アカウントが見つかりませんでした")
+          return
+        }
+        localStorage.setItem("todo.account", JSON.stringify(result))
+        setAccount(result)
+        syncTodoState(result.organizationId)
+        return
+      } catch (error) {
+        setAuthError(getAuthErrorMessage(error, "ログインに失敗しました"))
+        return
+      }
+    }
+
+    if (!authName) {
+      setAuthError("名前を入力してください")
+      return
+    }
+
+    try {
+      const result = await createAccount({
+        data: {
+          email: authEmail,
+          name: authName,
+          joinCode: authJoinCode || null,
+        },
+      })
+      localStorage.setItem("todo.account", JSON.stringify(result))
+      setAccount(result)
+      syncTodoState(result.organizationId)
+      setAuthJoinCode("")
+    } catch (error) {
+      setAuthError(getAuthErrorMessage(error, "登録に失敗しました"))
+    }
+  }
+
+  useEffect(() => {
+    const stored = localStorage.getItem("todo.account")
+    if (!stored) return
+    try {
+      const parsed = JSON.parse(stored) as Account
+      setAccount(parsed)
+      syncTodoState(parsed.organizationId)
+    } catch {
+      localStorage.removeItem("todo.account")
+    }
+  }, [])
 
   return (
     <div className="flex h-screen flex-col bg-muted/30 py-10">
-      <div className="pl-8">
-        <p className="text-lg font-semibold text-muted-foreground">{todayLabel}</p>
-      </div>
-      <div className="flex-1 flex overflow-x-auto px-4 pb-4 pt-2">
-        <div className="flex w-max gap-4">
-          {members.map((member) => {
-            const memberTasks = tasks.filter((task) => task.memberId === member.id)
-            const doneCount = memberTasks.filter((task) => task.done).length
-            const editable = isEditable(member.id)
-
-            return (
-              <MemberColumn
-                key={member.id}
-                member={member}
-                tasks={memberTasks}
-                doneCount={doneCount}
-                editable={editable}
-                taskErrors={taskErrors}
-                onInsertTask={insertTask}
-                onToggle={toggleTask}
-                onUpdateTitle={updateTitle}
-                onUpdateNote={updateNote}
-                onEnsureNote={ensureNote}
-                onRemoveNote={removeNote}
-                onRemoveTask={removeTask}
-                onKeyDown={handleKeyDown}
+      {!account ? (
+        <div className="flex flex-1 items-center justify-center px-4">
+          <div className="w-full max-w-sm rounded-lg border bg-background p-6 shadow-sm">
+            <div className="mb-4 flex gap-2">
+              <button
+                type="button"
+                className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold ${
+                  authMode === "signup"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+                onClick={() => {
+                  setAuthMode("signup")
+                  setAuthError(null)
+                }}
+              >
+                新規登録
+              </button>
+              <button
+                type="button"
+                className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold ${
+                  authMode === "login"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+                onClick={() => {
+                  setAuthMode("login")
+                  setAuthError(null)
+                }}
+              >
+                ログイン
+              </button>
+            </div>
+            <div className="space-y-3">
+              <input
+                type="email"
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                placeholder="メールアドレス"
+                className="w-full rounded-md border px-3 py-2 text-sm"
               />
-            )
-          })}
+              {authMode === "signup" && (
+                <>
+                  <input
+                    type="text"
+                    value={authName}
+                    onChange={(event) => setAuthName(event.target.value)}
+                    placeholder="表示名"
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={authJoinCode}
+                    onChange={(event) => setAuthJoinCode(event.target.value)}
+                    placeholder="参加コード（あれば）"
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                  />
+                </>
+              )}
+            </div>
+            {authError && <p className="mt-3 text-sm text-destructive">{authError}</p>}
+            <button
+              type="button"
+              onClick={() => void handleAuth()}
+              className="mt-4 w-full rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              {authMode === "signup" ? "登録して始める" : "ログイン"}
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between pl-8 pr-6">
+            <p className="text-lg font-semibold text-muted-foreground">{todayLabel}</p>
+            <button
+              type="button"
+              className="text-sm font-semibold text-muted-foreground hover:text-foreground transition"
+              onClick={handleLogout}
+            >
+              ログアウト
+            </button>
+          </div>
+          <div className="flex-1 flex overflow-x-auto px-4 pb-4 pt-2">
+            <div className="flex w-max gap-4">
+              {members.map((member) => {
+                const memberTasks = tasks.filter((task) => task.memberId === member.id)
+                const doneCount = memberTasks.filter((task) => task.done).length
+                const editable = isEditable(member.id)
+
+                return (
+                  <MemberColumn
+                    key={member.id}
+                    member={member}
+                    tasks={memberTasks}
+                    doneCount={doneCount}
+                    editable={editable}
+                    taskErrors={taskErrors}
+                    onInsertTask={insertTask}
+                    onToggle={toggleTask}
+                    onUpdateTitle={updateTitle}
+                    onUpdateNote={updateNote}
+                    onEnsureNote={ensureNote}
+                    onRemoveNote={removeNote}
+                    onRemoveTask={removeTask}
+                    onKeyDown={handleKeyDown}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
