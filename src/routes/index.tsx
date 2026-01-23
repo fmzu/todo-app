@@ -105,20 +105,6 @@ function App() {
 
   return (
     <div className="flex h-screen flex-col bg-muted/30 py-10 space-y-2">
-      <div className="mx-auto w-full max-w-6xl space-y-4 px-4">
-        <header className="space-y-2">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">きょうのフォーカス</p>
-              <h1 className="text-2xl font-bold leading-tight sm:text-3xl">メンバーごとのタスク</h1>
-            </div>
-          </div>
-          <p className="text-muted-foreground text-sm">
-            自分の列だけ編集できます。他のメンバーのタスクは閲覧専用。Enterで次の行を追加、Shift+Enterで備考欄を開けます。
-          </p>
-        </header>
-      </div>
-
       <div className="flex-1 flex overflow-x-auto px-4 pb-4">
         <div className="flex w-max gap-4">
           {members.map((member) => {
