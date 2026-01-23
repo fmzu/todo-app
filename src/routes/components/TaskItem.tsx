@@ -1,7 +1,7 @@
 ﻿import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import type { Task } from "./index"
+import type { Task } from "@/types/todo"
 
 type Props = {
   task: Task

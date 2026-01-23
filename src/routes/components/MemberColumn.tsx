@@ -1,8 +1,8 @@
 ﻿import { type KeyboardEvent } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { Task, Member } from "./index"
-import { TaskItem } from "./TaskItem"
+import type { Member, Task } from "@/types/todo"
+import { TaskItem } from "@/routes/components/TaskItem"
 
 type Props = {
   member: Member

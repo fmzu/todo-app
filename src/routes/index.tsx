@@ -1,43 +1,28 @@
 ﻿import { useMemo, useState, type KeyboardEvent } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { MemberColumn } from "./MemberColumn"
+import { members, currentUserId, initialTasks } from "@/data/todo"
+import {
+  canEditMember,
+  ensureTaskNote,
+  getNextTaskId,
+  insertTask as insertTaskEntry,
+  removeTask as removeTaskEntry,
+  removeTaskNote,
+  toggleTaskDone,
+  updateTaskNote,
+  updateTaskTitle,
+} from "@/lib/tasks"
+import type { Task } from "@/types/todo"
+import { MemberColumn } from "@/routes/components/MemberColumn"
 
 export const Route = createFileRoute("/")({ component: App })
 
-export type Member = {
-  id: string
-  name: string
-}
-
-export type Task = {
-  id: number
-  memberId: string
-  title: string
-  note?: string
-  done: boolean
-}
-
-const members: Member[] = [
-  { id: "me", name: "自分" },
-  { id: "alice", name: "アリス" },
-  { id: "bob", name: "ボブ" },
-]
-
-const currentUserId = "me"
-
 function App() {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, memberId: "me", title: "今日の最優先タスク", note: "ゴールと期限を先に決める", done: false },
-    { id: 2, memberId: "me", title: "ミーティングで聞きたいことを1つ", done: false },
-    { id: 3, memberId: "me", title: "Enterで次の項目を追加できます", note: "Shift+Enterで備考を開いて補足を書く", done: false },
-    { id: 4, memberId: "alice", title: "デザインレビューの準備", note: "最新のモックを共有", done: false },
-    { id: 5, memberId: "alice", title: "バグ再現動画を撮る", done: true },
-    { id: 6, memberId: "bob", title: "APIレスポンスの確認", done: false },
-  ])
+  const [tasks, setTasks] = useState<Task[]>(initialTasks)
 
-  const nextId = useMemo(() => Math.max(0, ...tasks.map((task) => task.id)) + 1, [tasks])
+  const nextId = useMemo(() => getNextTaskId(tasks), [tasks])
 
-  const isEditable = (memberId: string) => memberId === currentUserId
+  const isEditable = (memberId: string) => canEditMember(memberId, currentUserId)
 
   /**
    * チェック状態の切り替え
@@ -45,7 +30,7 @@ function App() {
    * @param next 次の完了状態
    */
   const toggleTask = (id: number, next: boolean) => {
-    setTasks((prev) => prev.map((task) => (task.id === id && isEditable(task.memberId) ? { ...task, done: next } : task)))
+    setTasks((prev) => toggleTaskDone(prev, id, next, currentUserId))
   }
 
   /**
@@ -54,7 +39,7 @@ function App() {
    * @param title 本文
    */
   const updateTitle = (id: number, title: string) => {
-    setTasks((prev) => prev.map((task) => (task.id === id && isEditable(task.memberId) ? { ...task, title } : task)))
+    setTasks((prev) => updateTaskTitle(prev, id, title, currentUserId))
   }
 
   /**
@@ -63,7 +48,7 @@ function App() {
    * @param note 備考
    */
   const updateNote = (id: number, note: string) => {
-    setTasks((prev) => prev.map((task) => (task.id === id && isEditable(task.memberId) ? { ...task, note } : task)))
+    setTasks((prev) => updateTaskNote(prev, id, note, currentUserId))
   }
 
   /**
@@ -71,7 +56,7 @@ function App() {
    * @param id タスクID
    */
   const ensureNote = (id: number) => {
-    setTasks((prev) => prev.map((task) => (task.id === id && isEditable(task.memberId) ? { ...task, note: task.note ?? "" } : task)))
+    setTasks((prev) => ensureTaskNote(prev, id, currentUserId))
   }
 
   /**
@@ -79,7 +64,7 @@ function App() {
    * @param id タスクID
    */
   const removeNote = (id: number) => {
-    setTasks((prev) => prev.map((task) => (task.id === id && isEditable(task.memberId) ? { ...task, note: undefined } : task)))
+    setTasks((prev) => removeTaskNote(prev, id, currentUserId))
   }
 
   /**
@@ -87,8 +72,7 @@ function App() {
    * @param memberId メンバーID
    */
   const insertTask = (memberId: string) => {
-    if (!isEditable(memberId)) return
-    setTasks((prev) => [...prev, { id: nextId, memberId, title: "", done: false }])
+    setTasks((prev) => insertTaskEntry(prev, memberId, nextId, currentUserId))
   }
 
   /**
@@ -116,7 +100,7 @@ function App() {
    * @param id タスクID
    */
   const removeTask = (id: number) => {
-    setTasks((prev) => (prev.length > 1 ? prev.filter((task) => task.id !== id || !isEditable(task.memberId)) : prev))
+    setTasks((prev) => removeTaskEntry(prev, id, currentUserId))
   }
 
   return (
@@ -165,3 +149,4 @@ function App() {
     </div>
   )
 }
+
