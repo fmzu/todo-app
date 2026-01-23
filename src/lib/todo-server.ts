@@ -11,13 +11,13 @@ type TodoState = {
 
 const createTaskInput = z.object({
   memberId: z.string(),
-  title: z.string().optional(),
+  title: z.string().max(80).optional(),
 })
 
 const updateTaskInput = z.object({
   id: z.number().int(),
-  title: z.string().optional(),
-  note: z.string().nullable().optional(),
+  title: z.string().max(80).optional(),
+  note: z.string().max(500).nullable().optional(),
   done: z.boolean().optional(),
 })
 

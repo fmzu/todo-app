@@ -6,6 +6,8 @@ import type { Task } from "@/types/todo"
 type Props = {
   task: Task
   editable: boolean
+  titleError?: string
+  noteError?: string
   onToggle: (id: number, next: boolean) => void
   onUpdateTitle: (id: number, title: string) => void
   onUpdateNote: (id: number, note: string) => void
@@ -21,6 +23,8 @@ type Props = {
 export function TaskItem(props: Props) {
   const task = props.task
   const editable = props.editable
+  const titleError = props.titleError
+  const noteError = props.noteError
   const onToggle = props.onToggle
   const onUpdateTitle = props.onUpdateTitle
   const onUpdateNote = props.onUpdateNote
@@ -40,7 +44,7 @@ export function TaskItem(props: Props) {
             disabled={!editable}
           />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Textarea
             value={task.title}
             onChange={(event) => editable && onUpdateTitle(task.id, event.target.value)}
@@ -48,8 +52,9 @@ export function TaskItem(props: Props) {
             readOnly={!editable}
             rows={task.title.includes("\n") ? Math.min(5, task.title.split("\n").length + 1) : 2}
             placeholder="タスクを書く"
-            className="min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none focus-visible:border-transparent focus-visible:ring-0"
+            className="min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none break-all focus-visible:border-transparent focus-visible:ring-0"
           />
+          {titleError && <p className="mt-1 text-xs text-destructive">{titleError}</p>}
         </div>
         {editable && (
           <Button
@@ -66,14 +71,17 @@ export function TaskItem(props: Props) {
 
       {task.note !== undefined ? (
         <div className="group/note ml-8 flex items-start gap-2 rounded-md bg-muted/30 px-4 py-2 text-sm">
-          <Textarea
-            value={task.note}
-            onChange={(event) => editable && onUpdateNote(task.id, event.target.value)}
-            readOnly={!editable}
-            placeholder="補足やリンクなどを書く"
-            rows={task.note.includes("\n") ? Math.min(5, task.note.split("\n").length + 1) : 2}
-            className="min-h-20 flex-1 resize-none border-none bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-          />
+          <div className="flex-1 min-w-0">
+            <Textarea
+              value={task.note}
+              onChange={(event) => editable && onUpdateNote(task.id, event.target.value)}
+              readOnly={!editable}
+              placeholder="補足やリンクなどを書く"
+              rows={task.note.includes("\n") ? Math.min(5, task.note.split("\n").length + 1) : 2}
+              className="min-h-20 w-full resize-none border-none bg-transparent px-0 shadow-none break-all focus-visible:border-transparent focus-visible:ring-0"
+            />
+            {noteError && <p className="mt-1 text-xs text-destructive">{noteError}</p>}
+          </div>
           {editable && (
             <Button
               variant="ghost"

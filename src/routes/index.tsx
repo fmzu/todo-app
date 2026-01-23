@@ -1,6 +1,7 @@
 ﻿import { useState, type KeyboardEvent } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { currentUserId } from "@/data/todo"
+import { formatJapanDate } from "@/lib/date"
 import {
   canEditMember,
   ensureTaskNote,
@@ -13,6 +14,14 @@ import { createTask, deleteTask, fetchTodoState, updateTask } from "@/lib/todo-s
 import type { Task } from "@/types/todo"
 import { MemberColumn } from "@/routes/components/MemberColumn"
 
+const TITLE_LIMIT = 80
+const NOTE_LIMIT = 500
+
+type TaskErrors = {
+  title?: string
+  note?: string
+}
+
 export const Route = createFileRoute("/")({
   component: App,
   loader: async () => await fetchTodoState(),
@@ -21,7 +30,9 @@ export const Route = createFileRoute("/")({
 function App() {
   const initialData = Route.useLoaderData()
   const [tasks, setTasks] = useState<Task[]>(initialData.tasks)
+  const [taskErrors, setTaskErrors] = useState<Record<number, TaskErrors>>({})
   const members = initialData.members
+  const todayLabel = formatJapanDate(new Date())
 
   const isEditable = (memberId: string) => canEditMember(memberId, currentUserId)
 
@@ -35,10 +46,29 @@ function App() {
     void updateTask({ data: { id, done: next } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
+  const getTitleError = (title: string) =>
+    title.length > TITLE_LIMIT ? `タイトルは${TITLE_LIMIT}文字以内で入力してください` : undefined
+  const getNoteError = (note: string) =>
+    note.length > NOTE_LIMIT ? `内容は${NOTE_LIMIT}文字以内で入力してください` : undefined
+
+  const updateTaskErrors = (taskId: number, title: string, note: string | null | undefined) => {
+    const nextErrors = {
+      title: getTitleError(title),
+      note: getNoteError(note ?? ""),
+    }
+    setTaskErrors((prev) => ({ ...prev, [taskId]: nextErrors }))
+    return nextErrors
+  }
+
   const commitTask = (task: Task, noteOverride?: string | null) => {
     const note = noteOverride ?? task.note ?? null
+    const nextErrors = updateTaskErrors(task.id, task.title, note)
+    if (nextErrors.title || nextErrors.note) {
+      return Promise.resolve(null)
+    }
     return updateTask({ data: { id: task.id, title: task.title, note } }).then((updatedTasks) => {
       setTasks(updatedTasks)
+      setTaskErrors((prev) => ({ ...prev, [task.id]: {} }))
       return updatedTasks
     })
   }
@@ -50,6 +80,8 @@ function App() {
    */
   const updateTitle = (id: number, title: string) => {
     setTasks((prev) => updateTaskTitle(prev, id, title, currentUserId))
+    const existingNote = tasks.find((task) => task.id === id)?.note ?? null
+    updateTaskErrors(id, title, existingNote)
   }
 
   /**
@@ -59,6 +91,8 @@ function App() {
    */
   const updateNote = (id: number, note: string) => {
     setTasks((prev) => updateTaskNote(prev, id, note, currentUserId))
+    const existingTitle = tasks.find((task) => task.id === id)?.title ?? ""
+    updateTaskErrors(id, existingTitle, note)
   }
 
   /**
@@ -67,6 +101,8 @@ function App() {
    */
   const ensureNote = (id: number) => {
     setTasks((prev) => ensureTaskNote(prev, id, currentUserId))
+    const existingTitle = tasks.find((task) => task.id === id)?.title ?? ""
+    updateTaskErrors(id, existingTitle, "")
   }
 
   /**
@@ -75,6 +111,8 @@ function App() {
    */
   const removeNote = (id: number) => {
     setTasks((prev) => removeTaskNote(prev, id, currentUserId))
+    const existingTitle = tasks.find((task) => task.id === id)?.title ?? ""
+    updateTaskErrors(id, existingTitle, null)
   }
 
   /**
@@ -87,7 +125,7 @@ function App() {
   }
 
   /**
-   * Enterで次の行を追加、Shift+Enterで備考欄を追加（自分の列のみ）
+   * Enterで保存、Shift+Enterで備考欄を追加（自分の列のみ）
    * @param event キーイベント
    * @param task 対象タスク
    */
@@ -117,8 +155,11 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-muted/30 py-10 space-y-2">
-      <div className="flex-1 flex overflow-x-auto px-4 pb-4">
+    <div className="flex h-screen flex-col bg-muted/30 py-10">
+      <div className="pl-8">
+        <p className="text-lg font-semibold text-muted-foreground">{todayLabel}</p>
+      </div>
+      <div className="flex-1 flex overflow-x-auto px-4 pb-4 pt-2">
         <div className="flex w-max gap-4">
           {members.map((member) => {
             const memberTasks = tasks.filter((task) => task.memberId === member.id)
@@ -132,6 +173,7 @@ function App() {
                 tasks={memberTasks}
                 doneCount={doneCount}
                 editable={editable}
+                taskErrors={taskErrors}
                 onInsertTask={insertTask}
                 onToggle={toggleTask}
                 onUpdateTitle={updateTitle}
