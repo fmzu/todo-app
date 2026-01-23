@@ -47,7 +47,7 @@ export function TaskItem(props: Props) {
             onKeyDown={(event) => onKeyDown(event, task)}
             readOnly={!editable}
             rows={task.title.includes("\n") ? Math.min(5, task.title.split("\n").length + 1) : 2}
-            placeholder="タスクを書いてEnterで次を追加"
+            placeholder="タスクを書く"
             className="min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none focus-visible:border-transparent focus-visible:ring-0"
           />
         </div>

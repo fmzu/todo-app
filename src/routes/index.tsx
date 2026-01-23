@@ -35,6 +35,14 @@ function App() {
     void updateTask({ data: { id, done: next } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
+  const commitTask = (task: Task, noteOverride?: string | null) => {
+    const note = noteOverride ?? task.note ?? null
+    return updateTask({ data: { id: task.id, title: task.title, note } }).then((updatedTasks) => {
+      setTasks(updatedTasks)
+      return updatedTasks
+    })
+  }
+
   /**
    * タスク本文の更新
    * @param id タスクID
@@ -42,7 +50,6 @@ function App() {
    */
   const updateTitle = (id: number, title: string) => {
     setTasks((prev) => updateTaskTitle(prev, id, title, currentUserId))
-    void updateTask({ data: { id, title } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -52,7 +59,6 @@ function App() {
    */
   const updateNote = (id: number, note: string) => {
     setTasks((prev) => updateTaskNote(prev, id, note, currentUserId))
-    void updateTask({ data: { id, note } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -61,7 +67,6 @@ function App() {
    */
   const ensureNote = (id: number) => {
     setTasks((prev) => ensureTaskNote(prev, id, currentUserId))
-    void updateTask({ data: { id, note: "" } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -70,7 +75,6 @@ function App() {
    */
   const removeNote = (id: number) => {
     setTasks((prev) => removeTaskNote(prev, id, currentUserId))
-    void updateTask({ data: { id, note: null } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
   /**
@@ -93,12 +97,13 @@ function App() {
     if (event.key === "Enter" && event.shiftKey) {
       event.preventDefault()
       ensureNote(task.id)
+      void commitTask(task, task.note ?? "")
       return
     }
 
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
-      void insertTask(task.memberId)
+      void commitTask(task)
     }
   }
 
