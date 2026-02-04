@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type KeyboardEvent } from "react"
+import { useEffect, useState, type KeyboardEvent } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { formatJapanDate } from "@/lib/date"
 import {
@@ -9,9 +9,11 @@ import {
   updateTaskNote,
   updateTaskTitle,
 } from "@/lib/tasks"
-import { createTask, deleteTask, fetchTodoState, updateTask } from "@/lib/todo-server"
-import { createAccount, fetchAccountByEmail } from "@/lib/auth-server"
+import { createTask, deleteTask, fetchTodoState, updateTask } from "@/lib/todo.functions"
+import { createAccount, fetchAccountByEmail } from "@/lib/auth.functions"
+import { fetchOrganization, updateOrganizationJoinCode } from "@/lib/organization.functions"
 import type { Account } from "@/types/account"
+import type { Organization } from "@/types/organization"
 import type { Member, Task } from "@/types/todo"
 import { MemberColumn } from "@/routes/components/MemberColumn"
 
@@ -32,16 +34,20 @@ export const Route = createFileRoute("/")({
 function App() {
   const [account, setAccount] = useState<Account | null>(null)
   const [isBootstrapped, setIsBootstrapped] = useState(false)
+  const [organization, setOrganization] = useState<Organization | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [taskErrors, setTaskErrors] = useState<Record<number, TaskErrors>>({})
+  const [focusTaskId, setFocusTaskId] = useState<number | null>(null)
   const [authMode, setAuthMode] = useState<AuthMode>("signup")
   const [authError, setAuthError] = useState<string | null>(null)
+  const [orgError, setOrgError] = useState<string | null>(null)
   const [authEmail, setAuthEmail] = useState("")
   const [authName, setAuthName] = useState("")
   const [authJoinCode, setAuthJoinCode] = useState("")
   const todayLabel = formatJapanDate(new Date())
   const organizationId = account?.organizationId ?? null
+  const isAdmin = account?.isAdmin ?? false
 
   const currentUserId = account?.id ?? ""
   const isEditable = (memberId: string) => canEditMember(memberId, currentUserId)
@@ -57,8 +63,10 @@ function App() {
     void updateTask({ data: { id, done: next, organizationId } }).then((updatedTasks) => setTasks(updatedTasks))
   }
 
-  const getTitleError = (title: string) =>
-    title.length > TITLE_LIMIT ? `タイトルは${TITLE_LIMIT}文字以内で入力してください` : undefined
+  const getTitleError = (title: string) => {
+    const trimmed = title.trim()
+    return trimmed.length > TITLE_LIMIT ? `タイトルは${TITLE_LIMIT}文字以内で入力してください` : undefined
+  }
   const getNoteError = (note: string) =>
     note.length > NOTE_LIMIT ? `内容は${NOTE_LIMIT}文字以内で入力してください` : undefined
 
@@ -133,8 +141,27 @@ function App() {
    */
   const insertTask = (memberId: string) => {
     if (!isEditable(memberId)) return
+    const emptyTask = tasks.find((task) => task.memberId === memberId && task.title.trim().length === 0)
+    if (emptyTask) {
+      setFocusTaskId(emptyTask.id)
+      return
+    }
     if (!organizationId) return
-    void createTask({ data: { memberId, organizationId } }).then((updatedTasks) => setTasks(updatedTasks))
+    void createTask({ data: { memberId, organizationId, title: "" } }).then((updatedTasks) => {
+      setTasks(updatedTasks)
+      const memberTasks = updatedTasks.filter((task) => task.memberId === memberId)
+      const latestTask = memberTasks.reduce<Task | null>(
+        (current, task) => (current && current.id > task.id ? current : task),
+        null,
+      )
+      setFocusTaskId(latestTask?.id ?? null)
+    })
+  }
+
+  const handleFocusHandled = (taskId: number) => {
+    if (focusTaskId === taskId) {
+      setFocusTaskId(null)
+    }
   }
 
   /**
@@ -175,26 +202,48 @@ function App() {
     })
   }
 
+  const syncOrganization = (nextOrganizationId: string) => {
+    void fetchOrganization({ data: { organizationId: nextOrganizationId } })
+      .then((payload) => setOrganization(payload))
+      .catch(() => setOrganization(null))
+  }
+
+  const handleJoinCodeRefresh = async () => {
+    setOrgError(null)
+    if (!organizationId || !account) return
+    try {
+      const updated = await updateOrganizationJoinCode({
+        data: { organizationId, accountId: account.id },
+      })
+      setOrganization(updated)
+    } catch (error) {
+      setOrgError(getAuthErrorMessage(error, "参加コードの更新に失敗しました"))
+    }
+  }
+
   const handleLogout = () => {
     localStorage.removeItem("todo.account")
     setAccount(null)
+    setOrganization(null)
     setMembers([])
     setTasks([])
     setAuthError(null)
+    setOrgError(null)
   }
 
   const getAuthErrorMessage = (error: unknown, fallback: string) => {
+    const isJapaneseMessage = (message: string) => /[ぁ-んァ-ン一-龯]/.test(message)
     if (error instanceof Error) {
       try {
         const parsed = JSON.parse(error.message) as Array<{ message?: string }>
         const message = parsed?.[0]?.message
-        if (typeof message === "string" && message.length > 0) {
+        if (typeof message === "string" && message.length > 0 && isJapaneseMessage(message)) {
           return message
         }
       } catch {
         // JSON parse failed
       }
-      if (error.message) {
+      if (error.message && isJapaneseMessage(error.message)) {
         return error.message
       }
     }
@@ -203,6 +252,7 @@ function App() {
 
   const handleAuth = async () => {
     setAuthError(null)
+    setOrgError(null)
     if (!authEmail) {
       setAuthError("メールアドレスを入力してください")
       return
@@ -218,6 +268,7 @@ function App() {
         localStorage.setItem("todo.account", JSON.stringify(result))
         setAccount(result)
         syncTodoState(result.organizationId)
+        syncOrganization(result.organizationId)
         return
       } catch (error) {
         setAuthError(getAuthErrorMessage(error, "ログインに失敗しました"))
@@ -241,6 +292,7 @@ function App() {
       localStorage.setItem("todo.account", JSON.stringify(result))
       setAccount(result)
       syncTodoState(result.organizationId)
+      syncOrganization(result.organizationId)
       setAuthJoinCode("")
     } catch (error) {
       setAuthError(getAuthErrorMessage(error, "登録に失敗しました"))
@@ -255,8 +307,19 @@ function App() {
     }
     try {
       const parsed = JSON.parse(stored) as Account
-      setAccount(parsed)
-      syncTodoState(parsed.organizationId)
+      const normalized = { ...parsed, isAdmin: parsed.isAdmin ?? false }
+      setAccount(normalized)
+      syncTodoState(normalized.organizationId)
+      syncOrganization(normalized.organizationId)
+      if (parsed.isAdmin === undefined) {
+        void fetchAccountByEmail({ data: { email: normalized.email } }).then((result) => {
+          if (!result) return
+          localStorage.setItem("todo.account", JSON.stringify(result))
+          setAccount(result)
+          syncTodoState(result.organizationId)
+          syncOrganization(result.organizationId)
+        })
+      }
       setIsBootstrapped(true)
     } catch {
       localStorage.removeItem("todo.account")
@@ -342,16 +405,34 @@ function App() {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between pl-8 pr-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 pl-8 pr-6">
             <p className="text-lg font-semibold text-muted-foreground">{todayLabel}</p>
-            <button
-              type="button"
-              className="text-sm font-semibold text-muted-foreground hover:text-foreground transition"
-              onClick={handleLogout}
-            >
-              ログアウト
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              {organization && (
+                <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-1 text-sm">
+                  <span className="text-muted-foreground">参加コード</span>
+                  <span className="font-semibold tracking-widest">{organization.joinCode}</span>
+                </div>
+              )}
+              {isAdmin && organization && (
+                <button
+                  type="button"
+                  className="rounded-md border px-3 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition"
+                  onClick={() => void handleJoinCodeRefresh()}
+                >
+                  参加コード再発行
+                </button>
+              )}
+              <button
+                type="button"
+                className="text-sm font-semibold text-muted-foreground hover:text-foreground transition"
+                onClick={handleLogout}
+              >
+                ログアウト
+              </button>
+            </div>
           </div>
+          {orgError && <p className="mt-2 px-8 text-sm text-destructive">{orgError}</p>}
           <div className="flex-1 flex overflow-x-auto px-4 pb-4 pt-2">
             <div className="flex w-max gap-4">
               {members.map((member) => {
@@ -367,6 +448,8 @@ function App() {
                     doneCount={doneCount}
                     editable={editable}
                     taskErrors={taskErrors}
+                    focusTaskId={focusTaskId}
+                    onFocusHandled={handleFocusHandled}
                     onInsertTask={insertTask}
                     onToggle={toggleTask}
                     onUpdateTitle={updateTitle}

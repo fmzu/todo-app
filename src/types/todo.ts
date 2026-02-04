@@ -9,4 +9,5 @@ export type Task = {
   title: string
   note?: string
   done: boolean
+  createdAt: string
 }

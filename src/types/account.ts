@@ -3,4 +3,5 @@ export type Account = {
   email: string
   name: string
   organizationId: string
+  isAdmin: boolean
 }

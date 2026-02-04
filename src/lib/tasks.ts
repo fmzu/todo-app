@@ -36,7 +36,7 @@ export function removeTaskNote(tasks: Task[], id: number, currentUserId: string)
 
 export function insertTask(tasks: Task[], memberId: string, nextId: number, currentUserId: string): Task[] {
   if (!canEditMember(memberId, currentUserId)) return tasks
-  return [...tasks, { id: nextId, memberId, title: "", done: false }]
+  return [...tasks, { id: nextId, memberId, title: "", done: false, createdAt: new Date().toISOString() }]
 }
 
 export function removeTask(tasks: Task[], id: number, currentUserId: string): Task[] {

@@ -2,9 +2,10 @@ import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 import type { Env } from "@/types/server"
 import type { Account } from "@/types/account"
-import { findAccountByEmail } from "@/lib/auth-db"
-import { createAccount as createAccountRow, createOrganization, findOrganizationByJoinCode } from "@/lib/user-db"
-import { createMember } from "@/lib/todo-db"
+import { findAccountByEmail } from "@/lib/auth.server"
+import { createAccount as createAccountRow, createOrganization, findOrganizationByJoinCode } from "@/lib/user.server"
+import { createMember } from "@/lib/todo.server"
+import { generateJoinCode, normalizeJoinCode } from "@/lib/join-code.server"
 
 const createAccountInput = z.object({
   email: z
@@ -31,12 +32,13 @@ const fetchAccountInput = z.object({
  */
 export const createAccount = createServerFn({ method: "POST" })
   .inputValidator(createAccountInput)
-  .handler(async (ctx) => {
-    const database = getDatabase(ctx.context)
-    const input = ctx.data
+  .handler(async ({ data, context }) => {
+    const database = getDatabase(context)
+    const input = data
     const joinCode = normalizeJoinCode(input.joinCode)
 
     let organizationId = ""
+    let isAdmin = false
 
     if (joinCode) {
       const organization = await findOrganizationByJoinCode(database, joinCode)
@@ -49,6 +51,7 @@ export const createAccount = createServerFn({ method: "POST" })
       const generatedJoinCode = generateJoinCode()
       await createOrganization(database, nextOrganizationId, `${input.name}のタスク`, generatedJoinCode)
       organizationId = nextOrganizationId
+      isAdmin = true
     }
 
     const account: Account = {
@@ -56,6 +59,7 @@ export const createAccount = createServerFn({ method: "POST" })
       email: input.email,
       name: input.name,
       organizationId,
+      isAdmin,
     }
 
     await createAccountRow(database, account)
@@ -70,27 +74,15 @@ export const createAccount = createServerFn({ method: "POST" })
  */
 export const fetchAccountByEmail = createServerFn({ method: "GET" })
   .inputValidator(fetchAccountInput)
-  .handler(async (ctx) => {
-    const database = getDatabase(ctx.context)
-    return await findAccountByEmail(database, ctx.data.email)
+  .handler(async ({ data, context }) => {
+    const database = getDatabase(context)
+    return await findAccountByEmail(database, data.email)
   })
-
-function normalizeJoinCode(joinCode: string | null | undefined): string | null {
-  const normalized = joinCode?.trim().toUpperCase() ?? ""
-  return normalized.length > 0 ? normalized : null
-}
-
-function generateJoinCode(): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-  const bytes = new Uint8Array(6)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes, (value) => alphabet[value % alphabet.length]).join("")
-}
 
 function getDatabase(context: { env?: Env } | undefined): Env["DB"] {
   const env = context?.env
   if (!env || !env.DB) {
-    throw new Error("Database binding is missing")
+    throw new Error("データベース設定が見つかりません")
   }
   return env.DB
 }

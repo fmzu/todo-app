@@ -6,6 +6,7 @@ type AccountRow = {
   email: string
   name: string
   organization_id: string
+  is_admin: number
 }
 
 /**
@@ -18,7 +19,7 @@ export async function findAccountByEmail(
   email: string,
 ): Promise<Account | null> {
   const result = await db
-    .prepare("SELECT id, email, name, organization_id FROM accounts WHERE email = ?1")
+    .prepare("SELECT id, email, name, organization_id, is_admin FROM accounts WHERE email = ?1")
     .bind(email)
     .all<AccountRow>()
   const row = result.results[0]
@@ -28,5 +29,6 @@ export async function findAccountByEmail(
     email: row.email,
     name: row.name,
     organizationId: row.organization_id,
+    isAdmin: row.is_admin === 1,
   }
 }

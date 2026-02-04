@@ -14,6 +14,7 @@ type TaskRow = {
   title: string
   note: string | null
   done: number
+  created_at: string
 }
 
 /**
@@ -50,7 +51,7 @@ export async function listMembersByOrganization(db: D1Database, organizationId: 
 export async function listTasksByOrganization(db: D1Database, organizationId: string): Promise<Task[]> {
   const result = await db
     .prepare(
-      "SELECT tasks.id, tasks.member_id, tasks.title, tasks.note, tasks.done FROM tasks INNER JOIN members ON tasks.member_id = members.id WHERE members.organization_id = ?1 ORDER BY tasks.id ASC",
+      "SELECT tasks.id, tasks.member_id, tasks.title, tasks.note, tasks.done, tasks.created_at FROM tasks INNER JOIN members ON tasks.member_id = members.id WHERE members.organization_id = ?1 ORDER BY tasks.id ASC",
     )
     .bind(organizationId)
     .all<TaskRow>()
@@ -60,8 +61,9 @@ export async function listTasksByOrganization(db: D1Database, organizationId: st
     title: row.title,
     note: row.note ?? undefined,
     done: row.done === 1,
+    createdAt: row.created_at,
   }))
-}
+} 
 
 /**
  * 組織配下のメンバーを新規作成する。
@@ -153,7 +155,7 @@ export async function updateTask(
 ): Promise<void> {
   const current = await getTaskById(db, id)
   if (!current) {
-    throw new Error("Task not found")
+    throw new Error("タスクが見つかりませんでした")
   }
 
   const nextTitle = title ?? current.title
@@ -183,7 +185,10 @@ export async function removeTask(db: D1Database, id: number): Promise<void> {
  * @param id タスクID
  */
 async function getTaskById(db: D1Database, id: number): Promise<Task | null> {
-  const result = await db.prepare("SELECT id, member_id, title, note, done FROM tasks WHERE id = ?1").bind(id).all<TaskRow>()
+  const result = await db
+    .prepare("SELECT id, member_id, title, note, done, created_at FROM tasks WHERE id = ?1")
+    .bind(id)
+    .all<TaskRow>()
   const row = result.results[0]
   if (!row) return null
   return {
@@ -192,5 +197,6 @@ async function getTaskById(db: D1Database, id: number): Promise<Task | null> {
     title: row.title,
     note: row.note ?? undefined,
     done: row.done === 1,
+    createdAt: row.created_at,
   }
 }

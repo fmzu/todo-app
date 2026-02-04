@@ -10,6 +10,8 @@ type Props = {
   doneCount: number
   editable: boolean
   taskErrors: Record<number, { title?: string; note?: string }>
+  focusTaskId: number | null
+  onFocusHandled: (id: number) => void
   onInsertTask: (memberId: string) => void
   onToggle: (id: number, next: boolean) => void
   onUpdateTitle: (id: number, title: string) => void
@@ -29,6 +31,8 @@ export function MemberColumn(props: Props) {
   const doneCount = props.doneCount
   const editable = props.editable
   const taskErrors = props.taskErrors
+  const focusTaskId = props.focusTaskId
+  const onFocusHandled = props.onFocusHandled
   const onInsertTask = props.onInsertTask
   const onToggle = props.onToggle
   const onUpdateTitle = props.onUpdateTitle
@@ -57,6 +61,8 @@ export function MemberColumn(props: Props) {
             editable={editable}
             titleError={taskErrors[task.id]?.title}
             noteError={taskErrors[task.id]?.note}
+            focusTaskId={focusTaskId}
+            onFocusHandled={onFocusHandled}
             onToggle={onToggle}
             onUpdateTitle={onUpdateTitle}
             onUpdateNote={onUpdateNote}

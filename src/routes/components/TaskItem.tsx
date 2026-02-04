@@ -1,4 +1,5 @@
-﻿import { Button } from "@/components/ui/button"
+﻿import { useEffect, useRef } from "react"
+import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import type { Task } from "@/types/todo"
@@ -8,6 +9,8 @@ type Props = {
   editable: boolean
   titleError?: string
   noteError?: string
+  focusTaskId: number | null
+  onFocusHandled: (id: number) => void
   onToggle: (id: number, next: boolean) => void
   onUpdateTitle: (id: number, title: string) => void
   onUpdateNote: (id: number, note: string) => void
@@ -25,7 +28,8 @@ export function TaskItem(props: Props) {
   const editable = props.editable
   const titleError = props.titleError
   const noteError = props.noteError
-  const isTitleEmpty = task.title.trim().length === 0
+  const focusTaskId = props.focusTaskId
+  const onFocusHandled = props.onFocusHandled
   const onToggle = props.onToggle
   const onUpdateTitle = props.onUpdateTitle
   const onUpdateNote = props.onUpdateNote
@@ -33,6 +37,15 @@ export function TaskItem(props: Props) {
   const onRemoveNote = props.onRemoveNote
   const onRemoveTask = props.onRemoveTask
   const onKeyDown = props.onKeyDown
+  const titleRef = useRef<HTMLTextAreaElement | null>(null)
+  const isTitleEmpty = task.title.trim().length === 0
+
+  useEffect(() => {
+    if (!editable) return
+    if (focusTaskId !== task.id) return
+    titleRef.current?.focus()
+    onFocusHandled(task.id)
+  }, [editable, focusTaskId, onFocusHandled, task.id])
 
   return (
     <div className="flex flex-col gap-2 px-2">
@@ -47,6 +60,7 @@ export function TaskItem(props: Props) {
         </div>
         <div className="flex-1 min-w-0">
           <Textarea
+            ref={titleRef}
             value={task.title}
             onChange={(event) => editable && onUpdateTitle(task.id, event.target.value)}
             onKeyDown={(event) => onKeyDown(event, task)}

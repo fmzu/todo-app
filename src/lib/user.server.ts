@@ -13,6 +13,7 @@ type AccountRow = {
   email: string
   name: string
   organization_id: string
+  is_admin: number
 }
 
 /**
@@ -67,9 +68,9 @@ export async function createAccount(
 ): Promise<void> {
   await db
     .prepare(
-      "INSERT INTO accounts (id, email, name, organization_id) VALUES (?1, ?2, ?3, ?4)",
+      "INSERT INTO accounts (id, email, name, organization_id, is_admin) VALUES (?1, ?2, ?3, ?4, ?5)",
     )
-    .bind(account.id, account.email, account.name, account.organizationId)
+    .bind(account.id, account.email, account.name, account.organizationId, account.isAdmin ? 1 : 0)
     .run()
 }
 
@@ -84,7 +85,7 @@ export async function listAccountsByOrganization(
 ): Promise<Account[]> {
   const result = await db
     .prepare(
-      "SELECT id, email, name, organization_id FROM accounts WHERE organization_id = ?1 ORDER BY name ASC",
+      "SELECT id, email, name, organization_id, is_admin FROM accounts WHERE organization_id = ?1 ORDER BY name ASC",
     )
     .bind(organizationId)
     .all<AccountRow>()
@@ -93,5 +94,63 @@ export async function listAccountsByOrganization(
     email: row.email,
     name: row.name,
     organizationId: row.organization_id,
+    isAdmin: row.is_admin === 1,
   }))
+}
+
+/**
+ * 組織IDで組織情報を取得する。
+ * @param db D1データベース
+ * @param organizationId 組織ID
+ */
+export async function findOrganizationById(
+  db: D1Database,
+  organizationId: string,
+): Promise<Organization | null> {
+  const result = await db
+    .prepare("SELECT id, name, join_code FROM organizations WHERE id = ?1")
+    .bind(organizationId)
+    .all<OrganizationRow>()
+  const row = result.results[0]
+  if (!row) return null
+  return {
+    id: row.id,
+    name: row.name,
+    joinCode: row.join_code,
+  }
+}
+
+/**
+ * 参加コードを更新する。
+ * @param db D1データベース
+ * @param organizationId 組織ID
+ * @param joinCode 参加コード
+ */
+export async function updateOrganizationJoinCode(
+  db: D1Database,
+  organizationId: string,
+  joinCode: string,
+): Promise<void> {
+  await db
+    .prepare("UPDATE organizations SET join_code = ?1 WHERE id = ?2")
+    .bind(joinCode, organizationId)
+    .run()
+}
+
+/**
+ * 管理者アカウントか確認する。
+ * @param db D1データベース
+ * @param accountId アカウントID
+ * @param organizationId 組織ID
+ */
+export async function isAdminInOrganization(
+  db: D1Database,
+  accountId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const result = await db
+    .prepare("SELECT id FROM accounts WHERE id = ?1 AND organization_id = ?2 AND is_admin = 1")
+    .bind(accountId, organizationId)
+    .all<{ id: string }>()
+  return Boolean(result.results[0])
 }
