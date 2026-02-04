@@ -7,13 +7,13 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"include": [
+		"includes": [
 			"src/**/*",
 			".vscode/**/*",
 			"index.html",
 			"vite.config.js"
 		],
-		"ignore": [
+		"experimentalScannerIgnores": [
 			"src/routeTree.gen.ts",
 			"src/styles.css"
 		]
