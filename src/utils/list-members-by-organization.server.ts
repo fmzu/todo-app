@@ -1,12 +1,12 @@
-import type { D1Database } from "@/types/server";
-import type { Member } from "@/types/todo";
+import type { D1Database } from "@/types/server"
+import type { Member } from "@/types/todo"
 
 type MemberRow = {
-	id: string;
-	name: string;
-	sort_order: number;
-	organization_id: string | null;
-};
+	id: string
+	name: string
+	sort_order: number
+	organization_id: string | null
+}
 
 /**
  * 組織配下のメンバー一覧を並び順で取得する。
@@ -22,9 +22,9 @@ export async function listMembersByOrganization(
 			"SELECT id, name, sort_order, organization_id FROM members WHERE organization_id = ?1 ORDER BY sort_order ASC, id ASC",
 		)
 		.bind(organizationId)
-		.all<MemberRow>();
+		.all<MemberRow>()
 	return result.results.map((row) => ({
 		id: row.id,
 		name: row.name,
-	}));
+	}))
 }

@@ -5,126 +5,147 @@ import { Textarea } from "@/components/ui/textarea"
 import type { Task } from "@/types/todo"
 
 type Props = {
-  task: Task
-  editable: boolean
-  titleError?: string
-  noteError?: string
-  focusTaskId: number | null
-  onFocusHandled: (id: number) => void
-  onToggle: (id: number, next: boolean) => void
-  onUpdateTitle: (id: number, title: string) => void
-  onUpdateNote: (id: number, note: string) => void
-  onEnsureNote: (id: number) => void
-  onRemoveNote: (id: number) => void
-  onRemoveTask: (id: number) => void
-  onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>, task: Task) => void
+	task: Task
+	editable: boolean
+	titleError?: string
+	noteError?: string
+	focusTaskId: number | null
+	onFocusHandled: (id: number) => void
+	onToggle: (id: number, next: boolean) => void
+	onUpdateTitle: (id: number, title: string) => void
+	onUpdateNote: (id: number, note: string) => void
+	onEnsureNote: (id: number) => void
+	onRemoveNote: (id: number) => void
+	onRemoveTask: (id: number) => void
+	onKeyDown: (
+		event: React.KeyboardEvent<HTMLTextAreaElement>,
+		task: Task,
+	) => void
 }
 
 /**
  * タスク1件の表示と編集を担当するコンポーネント
  */
 export function TaskItem(props: Props) {
-  const task = props.task
-  const editable = props.editable
-  const titleError = props.titleError
-  const noteError = props.noteError
-  const focusTaskId = props.focusTaskId
-  const onFocusHandled = props.onFocusHandled
-  const onToggle = props.onToggle
-  const onUpdateTitle = props.onUpdateTitle
-  const onUpdateNote = props.onUpdateNote
-  const onEnsureNote = props.onEnsureNote
-  const onRemoveNote = props.onRemoveNote
-  const onRemoveTask = props.onRemoveTask
-  const onKeyDown = props.onKeyDown
-  const titleRef = useRef<HTMLTextAreaElement | null>(null)
-  const isTitleEmpty = task.title.trim().length === 0
+	const task = props.task
+	const editable = props.editable
+	const titleError = props.titleError
+	const noteError = props.noteError
+	const focusTaskId = props.focusTaskId
+	const onFocusHandled = props.onFocusHandled
+	const onToggle = props.onToggle
+	const onUpdateTitle = props.onUpdateTitle
+	const onUpdateNote = props.onUpdateNote
+	const onEnsureNote = props.onEnsureNote
+	const onRemoveNote = props.onRemoveNote
+	const onRemoveTask = props.onRemoveTask
+	const onKeyDown = props.onKeyDown
+	const titleRef = useRef<HTMLTextAreaElement | null>(null)
+	const isTitleEmpty = task.title.trim().length === 0
 
-  useEffect(() => {
-    if (!editable) return
-    if (focusTaskId !== task.id) return
-    titleRef.current?.focus()
-    onFocusHandled(task.id)
-  }, [editable, focusTaskId, onFocusHandled, task.id])
+	useEffect(() => {
+		if (!editable) return
+		if (focusTaskId !== task.id) return
+		titleRef.current?.focus()
+		onFocusHandled(task.id)
+	}, [editable, focusTaskId, onFocusHandled, task.id])
 
-  return (
-    <div className="flex flex-col gap-2 px-2">
-      <div className="flex gap-4">
-        <div className="pt-2">
-          <Checkbox
-            checked={task.done}
-            onCheckedChange={(checked) => editable && onToggle(task.id, Boolean(checked))}
-            aria-label="完了"
-            disabled={!editable}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <Textarea
-            ref={titleRef}
-            value={task.title}
-            onChange={(event) => editable && onUpdateTitle(task.id, event.target.value)}
-            onKeyDown={(event) => onKeyDown(event, task)}
-            readOnly={!editable}
-            rows={task.title.includes("\n") ? Math.min(5, task.title.split("\n").length + 1) : 2}
-            placeholder="タスクを書く"
-            className={`min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none break-all focus-visible:border-transparent focus-visible:ring-0 ${
-              isTitleEmpty ? "rounded-md bg-orange-50/70 px-2" : ""
-            }`}
-          />
-          {titleError && <p className="mt-1 text-xs text-destructive">{titleError}</p>}
-        </div>
-        {editable && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="この行を削除"
-            onClick={() => onRemoveTask(task.id)}
-            className="text-muted-foreground"
-          >
-            ×
-          </Button>
-        )}
-      </div>
+	return (
+		<div className="flex flex-col gap-2 px-2">
+			<div className="flex gap-4">
+				<div className="pt-2">
+					<Checkbox
+						checked={task.done}
+						onCheckedChange={(checked) =>
+							editable && onToggle(task.id, Boolean(checked))
+						}
+						aria-label="完了"
+						disabled={!editable}
+					/>
+				</div>
+				<div className="flex-1 min-w-0">
+					<Textarea
+						ref={titleRef}
+						value={task.title}
+						onChange={(event) =>
+							editable && onUpdateTitle(task.id, event.target.value)
+						}
+						onKeyDown={(event) => onKeyDown(event, task)}
+						readOnly={!editable}
+						rows={
+							task.title.includes("\n")
+								? Math.min(5, task.title.split("\n").length + 1)
+								: 2
+						}
+						placeholder="タスクを書く"
+						className={`min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none break-all focus-visible:border-transparent focus-visible:ring-0 ${
+							isTitleEmpty ? "rounded-md bg-orange-50/70 px-2" : ""
+						}`}
+					/>
+					{titleError && (
+						<p className="mt-1 text-xs text-destructive">{titleError}</p>
+					)}
+				</div>
+				{editable && (
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						aria-label="この行を削除"
+						onClick={() => onRemoveTask(task.id)}
+						className="text-muted-foreground"
+					>
+						×
+					</Button>
+				)}
+			</div>
 
-      {task.note !== undefined ? (
-        <div className="group/note ml-8 flex items-start gap-2 rounded-md bg-muted/30 px-4 py-2 text-sm">
-          <div className="flex-1 min-w-0">
-            <Textarea
-              value={task.note}
-              onChange={(event) => editable && onUpdateNote(task.id, event.target.value)}
-              readOnly={!editable}
-              placeholder="補足やリンクなどを書く"
-              rows={task.note.includes("\n") ? Math.min(5, task.note.split("\n").length + 1) : 2}
-              className="min-h-20 w-full resize-none border-none bg-transparent px-0 shadow-none break-all focus-visible:border-transparent focus-visible:ring-0"
-            />
-            {noteError && <p className="mt-1 text-xs text-destructive">{noteError}</p>}
-          </div>
-          {editable && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="備考を削除"
-              onClick={() => onRemoveNote(task.id)}
-              className="text-muted-foreground opacity-0 transition group-hover/note:opacity-100 group-focus-within/note:opacity-100"
-            >
-              ×
-            </Button>
-          )}
-        </div>
-      ) : (
-        editable && (
-          <div className="flex items-center gap-2 pl-10">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs"
-              onClick={() => onEnsureNote(task.id)}
-            >
-              備考を追加
-            </Button>
-          </div>
-        )
-      )}
-    </div>
-  )
+			{task.note !== undefined ? (
+				<div className="group/note ml-8 flex items-start gap-2 rounded-md bg-muted/30 px-4 py-2 text-sm">
+					<div className="flex-1 min-w-0">
+						<Textarea
+							value={task.note}
+							onChange={(event) =>
+								editable && onUpdateNote(task.id, event.target.value)
+							}
+							readOnly={!editable}
+							placeholder="補足やリンクなどを書く"
+							rows={
+								task.note.includes("\n")
+									? Math.min(5, task.note.split("\n").length + 1)
+									: 2
+							}
+							className="min-h-20 w-full resize-none border-none bg-transparent px-0 shadow-none break-all focus-visible:border-transparent focus-visible:ring-0"
+						/>
+						{noteError && (
+							<p className="mt-1 text-xs text-destructive">{noteError}</p>
+						)}
+					</div>
+					{editable && (
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							aria-label="備考を削除"
+							onClick={() => onRemoveNote(task.id)}
+							className="text-muted-foreground opacity-0 transition group-hover/note:opacity-100 group-focus-within/note:opacity-100"
+						>
+							×
+						</Button>
+					)}
+				</div>
+			) : (
+				editable && (
+					<div className="flex items-center gap-2 pl-10">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-8 px-2 text-xs"
+							onClick={() => onEnsureNote(task.id)}
+						>
+							備考を追加
+						</Button>
+					</div>
+				)
+			)}
+		</div>
+	)
 }

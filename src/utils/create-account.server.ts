@@ -1,5 +1,5 @@
-import type { Account } from "@/types/account";
-import type { D1Database } from "@/types/server";
+import type { Account } from "@/types/account"
+import type { D1Database } from "@/types/server"
 
 /**
  * アカウントを新規作成する。
@@ -21,5 +21,5 @@ export async function createAccount(
 			account.organizationId,
 			account.isAdmin ? 1 : 0,
 		)
-		.run();
+		.run()
 }

@@ -1,4 +1,4 @@
-import type { D1Database } from "@/types/server";
+import type { D1Database } from "@/types/server"
 
 /**
  * 組織を新規作成する。
@@ -18,5 +18,5 @@ export async function createOrganization(
 			"INSERT INTO organizations (id, name, join_code) VALUES (?1, ?2, ?3)",
 		)
 		.bind(id, name, joinCode)
-		.run();
+		.run()
 }

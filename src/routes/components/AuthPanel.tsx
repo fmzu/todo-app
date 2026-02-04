@@ -1,29 +1,29 @@
-import type { AuthMode } from "@/types/auth";
+import type { AuthMode } from "@/types/auth"
 
 type Props = {
-	authMode: AuthMode;
-	authEmail: string;
-	authName: string;
-	authJoinCode: string;
-	authError: string | null;
-	onAuthModeChange: (mode: AuthMode) => void;
-	onAuthEmailChange: (value: string) => void;
-	onAuthNameChange: (value: string) => void;
-	onAuthJoinCodeChange: (value: string) => void;
-	onSubmit: () => void;
-};
+	authMode: AuthMode
+	authEmail: string
+	authName: string
+	authJoinCode: string
+	authError: string | null
+	onAuthModeChange: (mode: AuthMode) => void
+	onAuthEmailChange: (value: string) => void
+	onAuthNameChange: (value: string) => void
+	onAuthJoinCodeChange: (value: string) => void
+	onSubmit: () => void
+}
 
 export function AuthPanel(props: Props) {
-	const authMode = props.authMode;
-	const authEmail = props.authEmail;
-	const authName = props.authName;
-	const authJoinCode = props.authJoinCode;
-	const authError = props.authError;
-	const onAuthModeChange = props.onAuthModeChange;
-	const onAuthEmailChange = props.onAuthEmailChange;
-	const onAuthNameChange = props.onAuthNameChange;
-	const onAuthJoinCodeChange = props.onAuthJoinCodeChange;
-	const onSubmit = props.onSubmit;
+	const authMode = props.authMode
+	const authEmail = props.authEmail
+	const authName = props.authName
+	const authJoinCode = props.authJoinCode
+	const authError = props.authError
+	const onAuthModeChange = props.onAuthModeChange
+	const onAuthEmailChange = props.onAuthEmailChange
+	const onAuthNameChange = props.onAuthNameChange
+	const onAuthJoinCodeChange = props.onAuthJoinCodeChange
+	const onSubmit = props.onSubmit
 
 	return (
 		<div className="flex flex-1 items-center justify-center px-4">
@@ -91,5 +91,5 @@ export function AuthPanel(props: Props) {
 				</button>
 			</div>
 		</div>
-	);
+	)
 }

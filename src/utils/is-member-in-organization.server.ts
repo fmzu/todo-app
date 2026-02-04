@@ -1,4 +1,4 @@
-import type { D1Database } from "@/types/server";
+import type { D1Database } from "@/types/server"
 
 /**
  * メンバーが組織に属しているか確認する。
@@ -14,6 +14,6 @@ export async function isMemberInOrganization(
 	const result = await db
 		.prepare("SELECT id FROM members WHERE id = ?1 AND organization_id = ?2")
 		.bind(memberId, organizationId)
-		.all<{ id: string }>();
-	return Boolean(result.results[0]);
+		.all<{ id: string }>()
+	return Boolean(result.results[0])
 }

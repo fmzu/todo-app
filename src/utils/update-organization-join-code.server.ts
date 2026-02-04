@@ -1,4 +1,4 @@
-import type { D1Database } from "@/types/server";
+import type { D1Database } from "@/types/server"
 
 /**
  * 組織の参加コードを更新する。
@@ -14,5 +14,5 @@ export async function updateOrganizationJoinCode(
 	await db
 		.prepare("UPDATE organizations SET join_code = ?1 WHERE id = ?2")
 		.bind(joinCode, organizationId)
-		.run();
+		.run()
 }

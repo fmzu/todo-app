@@ -1,4 +1,4 @@
-import type { D1Database } from "@/types/server";
+import type { D1Database } from "@/types/server"
 
 /**
  * タスクを削除する。
@@ -6,5 +6,5 @@ import type { D1Database } from "@/types/server";
  * @param id タスクID
  */
 export async function removeTask(db: D1Database, id: number): Promise<void> {
-	await db.prepare("DELETE FROM tasks WHERE id = ?1").bind(id).run();
+	await db.prepare("DELETE FROM tasks WHERE id = ?1").bind(id).run()
 }

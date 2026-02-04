@@ -1,4 +1,4 @@
-import type { D1Database } from "@/types/server";
+import type { D1Database } from "@/types/server"
 
 /**
  * タスクが組織に属しているか確認する。
@@ -16,6 +16,6 @@ export async function isTaskInOrganization(
 			"SELECT tasks.id FROM tasks INNER JOIN members ON tasks.member_id = members.id WHERE tasks.id = ?1 AND members.organization_id = ?2",
 		)
 		.bind(taskId, organizationId)
-		.all<{ id: number }>();
-	return Boolean(result.results[0]);
+		.all<{ id: number }>()
+	return Boolean(result.results[0])
 }

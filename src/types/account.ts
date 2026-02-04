@@ -1,7 +1,7 @@
 export type Account = {
-  id: string
-  email: string
-  name: string
-  organizationId: string
-  isAdmin: boolean
+	id: string
+	email: string
+	name: string
+	organizationId: string
+	isAdmin: boolean
 }

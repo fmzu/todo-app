@@ -1,14 +1,14 @@
-import type { D1Database } from "@/types/server";
-import type { Task } from "@/types/todo";
+import type { D1Database } from "@/types/server"
+import type { Task } from "@/types/todo"
 
 type TaskRow = {
-	id: number;
-	member_id: string;
-	title: string;
-	note: string | null;
-	done: number;
-	created_at: string;
-};
+	id: number
+	member_id: string
+	title: string
+	note: string | null
+	done: number
+	created_at: string
+}
 
 /**
  * タスク内容を更新する。
@@ -25,21 +25,21 @@ export async function updateTask(
 	note: string | null | undefined,
 	done: boolean | undefined,
 ): Promise<void> {
-	const current = await getTaskById(db, id);
+	const current = await getTaskById(db, id)
 	if (!current) {
-		throw new Error("タスクが見つかりませんでした");
+		throw new Error("タスクが見つかりませんでした")
 	}
 
-	const nextTitle = title ?? current.title;
-	const nextNote = note !== undefined ? note : (current.note ?? null);
-	const nextDone = done ?? current.done;
+	const nextTitle = title ?? current.title
+	const nextNote = note !== undefined ? note : (current.note ?? null)
+	const nextDone = done ?? current.done
 
 	await db
 		.prepare(
 			"UPDATE tasks SET title = ?1, note = ?2, done = ?3, updated_at = datetime('now') WHERE id = ?4",
 		)
 		.bind(nextTitle, nextNote, nextDone ? 1 : 0, id)
-		.run();
+		.run()
 }
 
 /**
@@ -53,9 +53,9 @@ async function getTaskById(db: D1Database, id: number): Promise<Task | null> {
 			"SELECT id, member_id, title, note, done, created_at FROM tasks WHERE id = ?1",
 		)
 		.bind(id)
-		.all<TaskRow>();
-	const row = result.results[0];
-	if (!row) return null;
+		.all<TaskRow>()
+	const row = result.results[0]
+	if (!row) return null
 	return {
 		id: row.id,
 		memberId: row.member_id,
@@ -63,5 +63,5 @@ async function getTaskById(db: D1Database, id: number): Promise<Task | null> {
 		note: row.note ?? undefined,
 		done: row.done === 1,
 		createdAt: row.created_at,
-	};
+	}
 }

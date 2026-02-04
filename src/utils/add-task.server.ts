@@ -1,4 +1,4 @@
-import type { D1Database } from "@/types/server";
+import type { D1Database } from "@/types/server"
 
 /**
  * タスクを新規追加する。
@@ -16,5 +16,5 @@ export async function addTask(
 			"INSERT INTO tasks (member_id, title, note, done) VALUES (?1, ?2, NULL, 0)",
 		)
 		.bind(memberId, title)
-		.run();
+		.run()
 }

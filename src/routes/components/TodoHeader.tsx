@@ -1,21 +1,21 @@
-import type { Organization } from "@/types/organization";
+import type { Organization } from "@/types/organization"
 
 type Props = {
-	todayLabel: string;
-	organization: Organization | null;
-	isAdmin: boolean;
-	orgError: string | null;
-	onJoinCodeRefresh: () => void;
-	onLogout: () => void;
-};
+	todayLabel: string
+	organization: Organization | null
+	isAdmin: boolean
+	orgError: string | null
+	onJoinCodeRefresh: () => void
+	onLogout: () => void
+}
 
 export function TodoHeader(props: Props) {
-	const todayLabel = props.todayLabel;
-	const organization = props.organization;
-	const isAdmin = props.isAdmin;
-	const orgError = props.orgError;
-	const onJoinCodeRefresh = props.onJoinCodeRefresh;
-	const onLogout = props.onLogout;
+	const todayLabel = props.todayLabel
+	const organization = props.organization
+	const isAdmin = props.isAdmin
+	const orgError = props.orgError
+	const onJoinCodeRefresh = props.onJoinCodeRefresh
+	const onLogout = props.onLogout
 
 	return (
 		<>
@@ -54,5 +54,5 @@ export function TodoHeader(props: Props) {
 				<p className="mt-2 px-8 text-sm text-destructive">{orgError}</p>
 			)}
 		</>
-	);
+	)
 }

@@ -1,13 +1,13 @@
-import type { Account } from "@/types/account";
-import type { D1Database } from "@/types/server";
+import type { Account } from "@/types/account"
+import type { D1Database } from "@/types/server"
 
 type AccountRow = {
-	id: string;
-	email: string;
-	name: string;
-	organization_id: string;
-	is_admin: number;
-};
+	id: string
+	email: string
+	name: string
+	organization_id: string
+	is_admin: number
+}
 
 /**
  * 組織配下のアカウント一覧を取得する。
@@ -23,12 +23,12 @@ export async function listAccountsByOrganization(
 			"SELECT id, email, name, organization_id, is_admin FROM accounts WHERE organization_id = ?1 ORDER BY name ASC",
 		)
 		.bind(organizationId)
-		.all<AccountRow>();
+		.all<AccountRow>()
 	return result.results.map((row) => ({
 		id: row.id,
 		email: row.email,
 		name: row.name,
 		organizationId: row.organization_id,
 		isAdmin: row.is_admin === 1,
-	}));
+	}))
 }

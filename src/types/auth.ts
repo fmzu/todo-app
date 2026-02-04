@@ -1,1 +1,1 @@
-export type AuthMode = "signup" | "login";
+export type AuthMode = "signup" | "login"
