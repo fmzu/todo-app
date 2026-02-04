@@ -31,6 +31,7 @@ export const Route = createFileRoute("/")({
 
 function App() {
   const [account, setAccount] = useState<Account | null>(null)
+  const [isBootstrapped, setIsBootstrapped] = useState(false)
   const [tasks, setTasks] = useState<Task[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [taskErrors, setTaskErrors] = useState<Record<number, TaskErrors>>({})
@@ -248,15 +249,24 @@ function App() {
 
   useEffect(() => {
     const stored = localStorage.getItem("todo.account")
-    if (!stored) return
+    if (!stored) {
+      setIsBootstrapped(true)
+      return
+    }
     try {
       const parsed = JSON.parse(stored) as Account
       setAccount(parsed)
       syncTodoState(parsed.organizationId)
+      setIsBootstrapped(true)
     } catch {
       localStorage.removeItem("todo.account")
+      setIsBootstrapped(true)
     }
   }, [])
+
+  if (!isBootstrapped) {
+    return <div className="flex h-screen flex-col bg-muted/30" />
+  }
 
   return (
     <div className="flex h-screen flex-col bg-muted/30 py-10">
