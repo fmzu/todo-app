@@ -73,7 +73,7 @@ export function MemberColumn(props: Props) {
             className="w-full justify-center"
             onClick={() => onInsertTask(member.id)}
           >
-            + 行を追加
+            + タスクを追加
           </Button>
         )}
       </div>

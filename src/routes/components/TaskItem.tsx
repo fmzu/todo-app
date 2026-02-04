@@ -25,6 +25,7 @@ export function TaskItem(props: Props) {
   const editable = props.editable
   const titleError = props.titleError
   const noteError = props.noteError
+  const isTitleEmpty = task.title.trim().length === 0
   const onToggle = props.onToggle
   const onUpdateTitle = props.onUpdateTitle
   const onUpdateNote = props.onUpdateNote
@@ -52,7 +53,9 @@ export function TaskItem(props: Props) {
             readOnly={!editable}
             rows={task.title.includes("\n") ? Math.min(5, task.title.split("\n").length + 1) : 2}
             placeholder="タスクを書く"
-            className="min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none break-all focus-visible:border-transparent focus-visible:ring-0"
+            className={`min-h-10 resize-none border-none bg-transparent px-0 py-2 text-base shadow-none break-all focus-visible:border-transparent focus-visible:ring-0 ${
+              isTitleEmpty ? "rounded-md bg-orange-50/70 px-2" : ""
+            }`}
           />
           {titleError && <p className="mt-1 text-xs text-destructive">{titleError}</p>}
         </div>
