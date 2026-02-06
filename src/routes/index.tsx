@@ -353,7 +353,7 @@ function App() {
 					return message
 				}
 			} catch {
-				// JSON parse failed
+				// JSONのパースに失敗
 			}
 			if (error.message && isJapaneseMessage(error.message)) {
 				return error.message
